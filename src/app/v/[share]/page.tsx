@@ -25,7 +25,7 @@ export default function ShareRoute({ params }: { params: { share: string } }) {
 
   return (
     <>
-      <ViewerPage ownerName={config.owner.name} slots={slots} note={share.note} />
+      <ViewerPage ownerName={config.owner.name} slots={slots} />
       <script dangerouslySetInnerHTML={{ __html: `window.__VIEWER__=${JSON.stringify(viewerGlobals)}` }} />
       <script dangerouslySetInnerHTML={{ __html: CONTROLLER_JS }} />
     </>

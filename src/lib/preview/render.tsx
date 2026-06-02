@@ -40,7 +40,7 @@ function doc(title: string, body: string, withController = false): string {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>${title}</title><style>${css}</style></head>
-<body>${body}${scripts}</body></html>`;
+<body class="bg-white text-stone-900 dark:bg-stone-950 dark:text-stone-100">${body}${scripts}</body></html>`;
 }
 
 function mockShare(partial: Partial<Share>): Share {
@@ -72,7 +72,7 @@ const recipients: { file: string; title: string; share: Share }[] = [
 for (const r of recipients) {
   const slots = resolveShare(r.share, snapshot);
   const body = renderToStaticMarkup(
-    React.createElement(ViewerPage, { ownerName: config.owner.name, slots, note: r.share.note }),
+    React.createElement(ViewerPage, { ownerName: config.owner.name, slots }),
   );
   writeFileSync(resolve(root, "data", r.file), doc(r.title, body, true));
 }
@@ -81,13 +81,13 @@ for (const r of recipients) {
 const meBody = renderToStaticMarkup(
   React.createElement(
     "main",
-    { className: "min-h-screen bg-stone-50 text-stone-900" },
+    { className: "min-h-screen bg-stone-50 text-stone-900 dark:bg-stone-950 dark:text-stone-100" },
     React.createElement(
       "div",
       { className: "mx-auto max-w-lg px-6 py-14" },
       React.createElement(
         "h1",
-        { className: "text-[15px] font-medium tracking-tight text-stone-400" },
+        { className: "text-[15px] italic tracking-tight text-stone-400 dark:text-stone-500" },
         `${config.owner.name} · availability`,
       ),
       React.createElement(Composer, {

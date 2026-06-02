@@ -6,6 +6,11 @@ import type { Share } from "@/types/share";
 
 type TypeOption = { id: string; label: string };
 
+const input =
+  "w-full rounded-xl border border-stone-200 p-3 text-[15px] outline-none placeholder:text-stone-300 focus:border-stone-400 dark:border-stone-700 dark:bg-stone-900 dark:placeholder:text-stone-600 dark:focus:border-stone-500";
+
+const pill = "rounded-full border px-3 py-1 text-[12px] transition";
+
 export function Composer({
   eventTypes,
   initialShares,
@@ -34,12 +39,7 @@ export function Composer({
     const res = await fetch("/api/shares", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        recipient,
-        typeIds: [...selected],
-        note,
-        customDescription,
-      }),
+      body: JSON.stringify({ recipient, typeIds: [...selected], note, customDescription }),
     });
     setBusy(false);
     if (!res.ok) {
@@ -61,13 +61,12 @@ export function Composer({
 
   return (
     <div className="mt-8 flex flex-col gap-10">
-      {/* ── Compose ───────────────────────────────────────────────── */}
-      <section className="flex flex-col gap-4 rounded-2xl border border-stone-200 bg-white p-5">
+      <section className="flex flex-col gap-4 rounded-2xl border border-stone-200 bg-white p-5 dark:border-stone-800 dark:bg-stone-900">
         <input
           value={recipient}
           onChange={(e) => setRecipient(e.target.value)}
           placeholder="Who's this for? (optional)"
-          className="w-full border-b border-stone-200 pb-2 text-[15px] outline-none placeholder:text-stone-300 focus:border-stone-400"
+          className="w-full border-b border-stone-200 bg-transparent pb-2 text-[16px] outline-none placeholder:text-stone-300 focus:border-stone-400 dark:border-stone-700 dark:placeholder:text-stone-600 dark:focus:border-stone-500"
         />
 
         <div className="flex flex-wrap gap-2">
@@ -76,10 +75,10 @@ export function Composer({
               key={t.id}
               type="button"
               onClick={() => toggle(t.id)}
-              className={`rounded-full border px-3 py-1.5 text-[13px] transition ${
+              className={`${pill} text-[13px] ${
                 selected.has(t.id)
-                  ? "border-stone-900 bg-stone-900 text-white"
-                  : "border-stone-200 text-stone-600 hover:border-stone-300"
+                  ? "border-stone-900 bg-stone-900 text-white dark:border-stone-100 dark:bg-stone-100 dark:text-stone-900"
+                  : "border-stone-200 text-stone-600 hover:border-stone-300 dark:border-stone-700 dark:text-stone-300 dark:hover:border-stone-500"
               }`}
             >
               {t.label}
@@ -92,14 +91,14 @@ export function Composer({
           onChange={(e) => setCustomDescription(e.target.value)}
           placeholder="…or describe it ('a long sunday lunch', 'evening drinks somewhere central')"
           rows={2}
-          className="w-full resize-none rounded-xl border border-stone-200 p-3 text-[14px] outline-none placeholder:text-stone-300 focus:border-stone-400"
+          className={`${input} resize-none`}
         />
 
         <input
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          placeholder="A note to show them at the top (optional)"
-          className="w-full rounded-xl border border-stone-200 p-3 text-[14px] outline-none placeholder:text-stone-300 focus:border-stone-400"
+          placeholder="A private note for the text version (optional)"
+          className={input}
         />
 
         {error && <p className="text-[13px] text-red-500">{error}</p>}
@@ -108,16 +107,17 @@ export function Composer({
           type="button"
           onClick={create}
           disabled={busy}
-          className="self-start rounded-full bg-stone-900 px-4 py-2 text-[14px] font-medium text-white transition hover:bg-stone-700 disabled:opacity-50"
+          className="self-start rounded-full bg-stone-900 px-4 py-2 text-[14px] font-medium text-white transition hover:bg-stone-700 disabled:opacity-50 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-300"
         >
           {busy ? "Creating…" : "Create link"}
         </button>
       </section>
 
-      {/* ── Existing shares ───────────────────────────────────────── */}
       {shares.length > 0 && (
         <section className="flex flex-col gap-3">
-          <h2 className="text-[13px] font-medium uppercase tracking-wide text-stone-400">Links</h2>
+          <h2 className="text-[13px] font-medium uppercase tracking-wide text-stone-400 dark:text-stone-500">
+            Links
+          </h2>
           {shares.map((s) => (
             <ShareRow key={s.id} share={s} eventTypes={eventTypes} onDelete={() => remove(s.id)} />
           ))}
@@ -158,25 +158,36 @@ function ShareRow({
   }
 
   return (
-    <div className="flex flex-col gap-2 rounded-2xl border border-stone-200 bg-white p-4">
+    <div className="flex flex-col gap-2 rounded-2xl border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900">
       <div className="flex items-baseline justify-between gap-3">
-        <span className="truncate text-[14px] text-stone-700">{summary || "Untitled"}</span>
+        <span className="truncate text-[15px] text-stone-700 dark:text-stone-300">
+          {summary || "Untitled"}
+        </span>
         <a
           href={`/v/${share.id}`}
           target="_blank"
-          className="shrink-0 text-[12px] text-stone-400 underline-offset-2 hover:underline"
+          className="shrink-0 text-[12px] text-stone-400 underline-offset-2 hover:underline dark:text-stone-500"
         >
           open
         </a>
       </div>
       <div className="flex flex-wrap gap-2">
-        <button onClick={copyLink} className="rounded-full border border-stone-200 px-3 py-1 text-[12px] text-stone-600 hover:border-stone-300">
+        <button
+          onClick={copyLink}
+          className={`${pill} border-stone-200 text-stone-600 hover:border-stone-300 dark:border-stone-700 dark:text-stone-300 dark:hover:border-stone-500`}
+        >
           {copied === "link" ? "Copied!" : "Copy link"}
         </button>
-        <button onClick={copyText} className="rounded-full border border-stone-200 px-3 py-1 text-[12px] text-stone-600 hover:border-stone-300">
+        <button
+          onClick={copyText}
+          className={`${pill} border-stone-200 text-stone-600 hover:border-stone-300 dark:border-stone-700 dark:text-stone-300 dark:hover:border-stone-500`}
+        >
           {copied === "text" ? "Copied!" : "Copy as text"}
         </button>
-        <button onClick={onDelete} className="rounded-full px-3 py-1 text-[12px] text-stone-400 hover:text-red-500">
+        <button
+          onClick={onDelete}
+          className={`${pill} border-transparent text-stone-400 hover:text-red-500 dark:text-stone-500`}
+        >
           Delete
         </button>
       </div>
