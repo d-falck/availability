@@ -4,24 +4,20 @@
  */
 
 import { randomBytes } from "node:crypto";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { readFileSync, writeFileSync } from "node:fs";
+import { dataPath } from "./paths";
 import type { Share } from "@/types/share";
-
-const DIR = resolve(process.cwd(), "data");
-const PATH = resolve(DIR, "shares.json");
 
 function readAll(): Share[] {
   try {
-    return JSON.parse(readFileSync(PATH, "utf8")) as Share[];
+    return JSON.parse(readFileSync(dataPath("shares.json"), "utf8")) as Share[];
   } catch {
     return [];
   }
 }
 
 function writeAll(shares: Share[]): void {
-  mkdirSync(DIR, { recursive: true });
-  writeFileSync(PATH, JSON.stringify(shares, null, 2));
+  writeFileSync(dataPath("shares.json"), JSON.stringify(shares, null, 2));
 }
 
 export function listShares(): Share[] {

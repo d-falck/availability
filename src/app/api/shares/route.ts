@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { createShare, listShares } from "@/lib/shares";
 import type { Share } from "@/types/share";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   return NextResponse.json(listShares());
 }

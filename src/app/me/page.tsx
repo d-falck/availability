@@ -7,6 +7,7 @@
 import { config } from "@/config";
 import { listShares } from "@/lib/shares";
 import { Composer } from "./Composer";
+import { GoogleSection } from "./GoogleSection";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,7 @@ export default function MePage() {
         <h1 className="text-[15px] italic tracking-tight text-stone-400 dark:text-stone-500">
           {config.owner.name} · availability
         </h1>
+        <GoogleSection />
         <Composer
           eventTypes={config.eventTypes.map((t) => ({ id: t.id, label: t.label }))}
           initialShares={listShares()}

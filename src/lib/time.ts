@@ -85,6 +85,10 @@ export const weekdayLong = (date: string): string => WEEKDAY_LONG[dayCodeOf(date
 export const weekdayShort = (date: string): string =>
   WEEKDAY_LONG[dayCodeOf(date)].slice(0, 3);
 
+/** Today's date "YYYY-MM-DD" in the given IANA timezone. */
+export const todayInTz = (tz: string): string =>
+  new Intl.DateTimeFormat("en-CA", { timeZone: tz }).format(new Date());
+
 /** "8 Jun" style short label. */
 export const dayMonth = (date: string): string => {
   const d = new Date(`${date}T00:00:00Z`);

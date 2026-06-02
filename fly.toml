@@ -1,0 +1,26 @@
+# Fly.io config. Rename `app` to your chosen app name (must match `fly apps create`).
+app = "availability"
+primary_region = "lhr"  # London — closest to Europe/London
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  DATA_DIR = "/data"
+  REGEN_INTERVAL_MIN = "10"
+
+# Persistent volume — shares + Google tokens live here and survive deploys.
+[mounts]
+  source = "availability_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = false   # keep running so the refresh timer keeps ticking
+  auto_start_machines = true
+  min_machines_running = 1
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

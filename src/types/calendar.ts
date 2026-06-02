@@ -38,4 +38,6 @@ export interface CalendarFetch {
   toISO: string;
   timezone: string;
   events: RawEvent[];
+  /** Where the events came from — drives the reference "now" in generation. */
+  source: "mock" | "google";
 }

@@ -289,4 +289,5 @@ export const mockCalendar: CalendarFetch = {
   toISO: `${ANCHOR_YEAR}-${ANCHOR_MONTH}-22`,
   timezone: "Europe/London",
   events,
+  source: "mock",
 };
