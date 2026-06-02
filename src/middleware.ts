@@ -23,5 +23,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/me", "/api/google/:path*", "/api/shares/:path*"],
+  matcher: ["/me", "/me/:path*", "/api/google/:path*", "/api/shares/:path*", "/api/settings"],
 };

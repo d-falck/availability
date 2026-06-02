@@ -33,10 +33,7 @@ const css = readFileSync(cssTmp, "utf8");
 rmSync(cssTmp, { force: true });
 
 function doc(title: string, body: string, withController = false): string {
-  const globals = { ownerName: config.owner.name, contactEmail: config.owner.contactEmail };
-  const scripts = withController
-    ? `<script>window.__VIEWER__=${JSON.stringify(globals)}</script><script>${CONTROLLER_JS}</script>`
-    : "";
+  const scripts = withController ? `<script>${CONTROLLER_JS}</script>` : "";
   return `<!doctype html><html lang="en"><head><meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>${title}</title><style>${css}</style></head>
@@ -71,9 +68,7 @@ const recipients: { file: string; title: string; share: Share }[] = [
 
 for (const r of recipients) {
   const slots = resolveShare(r.share, snapshot);
-  const body = renderToStaticMarkup(
-    React.createElement(ViewerPage, { ownerName: config.owner.name, slots }),
-  );
+  const body = renderToStaticMarkup(React.createElement(ViewerPage, { slots }));
   writeFileSync(resolve(root, "data", r.file), doc(r.title, body, true));
 }
 

@@ -4,20 +4,22 @@
  * via `npm run generate`.
  */
 
-import { config } from "@/config";
 import { addDays, localDate, todayInTz } from "@/lib/time";
 import { saveSnapshot } from "@/lib/snapshot";
+import { effectiveConfig, loadSettings } from "@/lib/settings";
 import { fetchCalendar } from "./fetch";
 import { generateCandidates } from "./rules";
 import { applyGuardrails, buildSnapshot } from "./guardrails";
 
 export async function generate(now?: string) {
+  const config = effectiveConfig();
+  const settings = loadSettings();
   const fetch = await fetchCalendar();
   // Mock data is anchored to a fixed month; real data uses today.
   const ref =
     now ?? (fetch.source === "mock" ? addDays(localDate(fetch.fromISO), 1) : todayInTz(config.timezone));
 
-  const candidates = generateCandidates(fetch, config, ref);
+  const candidates = generateCandidates(fetch, config, ref, settings.allDayHandling === "busy");
   const slots = applyGuardrails(candidates, config);
   const snapshot = buildSnapshot(slots, config, ref);
   saveSnapshot(snapshot);

@@ -1,19 +1,19 @@
 /**
- * Tiny dependency-free controller for the viewer. It attaches to the data-*
- * attributes rendered by ViewerPage, so the identical script works whether the
- * page was server-rendered by Next or written to a standalone HTML file. It
- * reads owner/contact details from window.__VIEWER__.
+ * Tiny dependency-free controller for the recipient page. Attaches to the data-*
+ * attributes from ViewerPage, so the identical script works whether the page was
+ * server-rendered by Next or written to a standalone HTML file. Selecting days
+ * and hitting "Copy these" copies the chosen times to the clipboard.
  *
  * Exported as a string so it can be dropped into a <script> tag in both places.
  */
 
 export const CONTROLLER_JS = String.raw`
 (function () {
-  var cfg = (window.__VIEWER__ || { ownerName: "me", contactEmail: "" });
   var selected = new Map();
   var bar = document.querySelector(".suggest-bar");
   var countEl = document.querySelector(".suggest-count");
   var sendEl = document.querySelector(".suggest-send");
+  var idle = sendEl ? sendEl.textContent : "Copy these";
 
   function render() {
     var n = selected.size;
@@ -30,29 +30,19 @@ export const CONTROLLER_JS = String.raw`
     });
   });
 
-  function compose() {
+  function copy() {
     if (!selected.size) return;
-    var lines = Array.from(selected.values()).sort();
-    var body =
-      "Hi " + cfg.ownerName + ",\n\nThese could work for me:\n\n" +
-      lines.map(function (l) { return "• " + l; }).join("\n") +
-      "\n\nLet me know what suits!";
-    // Copy as a friendly fallback, then open the user's mail client.
-    if (navigator.clipboard) navigator.clipboard.writeText(body).catch(function () {});
-    var subject = "Some times that work for me";
-    var href =
-      "mailto:" + encodeURIComponent(cfg.contactEmail) +
-      "?subject=" + encodeURIComponent(subject) +
-      "&body=" + encodeURIComponent(body);
-    window.location.href = href;
-    if (sendEl) {
-      var prev = sendEl.textContent;
-      sendEl.textContent = "Copied & opening email…";
-      setTimeout(function () { sendEl.textContent = prev; }, 2200);
-    }
+    var text = Array.from(selected.values()).sort().join("\n");
+    var done = function () {
+      if (!sendEl) return;
+      sendEl.textContent = "Copied ✓";
+      setTimeout(function () { sendEl.textContent = idle; }, 1800);
+    };
+    if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, done);
+    else done();
   }
 
-  if (sendEl) sendEl.addEventListener("click", compose);
+  if (sendEl) sendEl.addEventListener("click", copy);
   render();
 })();
 `;

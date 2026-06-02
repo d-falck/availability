@@ -1,10 +1,9 @@
 /**
  * The recipient page — deliberately minimal: just a chronological list of days,
- * with combined same-day times, specific where the data allows, and a quiet "if
- * need be" on times to avoid. No top copy, no categories, no emoji. Classy serif,
- * follows the system light/dark setting. Presentational and server-renderable so
- * the same markup powers the Next route and the standalone preview; the
- * selection/compose behaviour is layered on by the controller.
+ * with combined same-day times, unambiguous labels, and a quiet "if need be" on
+ * times to avoid. No name, no top copy, no categories. Classy serif, follows the
+ * system light/dark setting. Presentational and server-renderable; the
+ * select-and-copy behaviour is layered on by the controller.
  */
 
 import * as React from "react";
@@ -12,17 +11,13 @@ import type { Slot } from "@/types/snapshot";
 import { groupByDay } from "@/lib/dayview";
 import { dayMonth, weekdayShort } from "@/lib/time";
 
-export function ViewerPage({ ownerName, slots }: { ownerName: string; slots: Slot[] }) {
+export function ViewerPage({ slots }: { slots: Slot[] }) {
   const days = groupByDay(slots);
 
   return (
     <main className="min-h-screen bg-white text-stone-900 dark:bg-stone-950 dark:text-stone-100">
       <div className="mx-auto max-w-md px-6 py-16 sm:py-20">
-        <h1 className="text-[15px] italic tracking-tight text-stone-400 dark:text-stone-500">
-          {ownerName}
-        </h1>
-
-        <ul className="mt-8">
+        <ul>
           {days.length === 0 && (
             <li className="py-3 text-[16px] text-stone-400 dark:text-stone-500">
               Nothing free just now.
@@ -65,7 +60,7 @@ export function ViewerPage({ ownerName, slots }: { ownerName: string; slots: Slo
             type="button"
             className="suggest-send rounded-full bg-stone-900 px-3.5 py-1.5 text-[13px] font-medium text-white transition hover:bg-stone-700 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-300"
           >
-            Suggest these
+            Copy these
           </button>
         </div>
       </div>

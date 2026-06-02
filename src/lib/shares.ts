@@ -38,6 +38,18 @@ export function createShare(input: Omit<Share, "id" | "createdAt">): Share {
   return share;
 }
 
+export function updateShare(
+  id: string,
+  patch: Partial<Omit<Share, "id" | "createdAt">>,
+): Share | undefined {
+  const all = readAll();
+  const share = all.find((s) => s.id === id);
+  if (!share) return undefined;
+  Object.assign(share, patch);
+  writeAll(all);
+  return share;
+}
+
 export function deleteShare(id: string): void {
   writeAll(readAll().filter((s) => s.id !== id));
 }

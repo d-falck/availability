@@ -45,7 +45,12 @@ interface DayShape {
   busyMinsInDay: number;
 }
 
-function shapeOf(events: RawEvent[], date: string, dayWin: Interval): DayShape {
+function shapeOf(
+  events: RawEvent[],
+  date: string,
+  dayWin: Interval,
+  allDayBusy: boolean,
+): DayShape {
   const todays = events.filter((e) => localDate(e.start) === date);
   let blockedAllDay = false;
   const hard: Interval[] = [];
@@ -54,7 +59,7 @@ function shapeOf(events: RawEvent[], date: string, dayWin: Interval): DayShape {
   for (const e of todays) {
     const soft = e.status === "tentative" || e.transparency === "transparent";
     if (e.allDay) {
-      if (!soft) blockedAllDay = true;
+      if (!soft && allDayBusy) blockedAllDay = true;
       continue;
     }
     if (soft) continue;
@@ -87,6 +92,7 @@ export function generateCandidates(
   fetch: CalendarFetch,
   config: Config,
   now: string,
+  allDayBusy = true,
 ): CandidateSlot[] {
   const dayWin: Interval = [clockToMin(config.dayWindow.start), clockToMin(config.dayWindow.end)];
   const evWin: Interval = [
@@ -111,7 +117,7 @@ export function generateCandidates(
   };
 
   for (const date of eachDate(`${now}T00:00:00`, `${localDate(fetch.toISO)}T00:00:00`)) {
-    const shape = shapeOf(fetch.events, date, dayWin);
+    const shape = shapeOf(fetch.events, date, dayWin, allDayBusy);
     if (shape.blockedAllDay) continue;
     const weekend = isWeekend(date);
 
