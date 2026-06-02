@@ -1,0 +1,15 @@
+/node_modules
+/.next
+/out
+/build
+next-env.d.ts
+*.tsbuildinfo
+
+# local env / secrets — never commit Google or Anthropic credentials
+.env
+.env.local
+.env*.local
+
+# generated availability snapshots (regenerated from calendar)
+/data/*.json
+!/data/.gitkeep
