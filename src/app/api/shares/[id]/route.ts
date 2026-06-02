@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { deleteShare, getShare, updateShare } from "@/lib/shares";
+import { loadSnapshot } from "@/lib/snapshot";
+import { loadSettings } from "@/lib/settings";
+import { warmShare } from "@/lib/refine";
 import type { Share } from "@/types/share";
 
 export async function PUT(req: Request, { params }: { params: { id: string } }) {
@@ -11,6 +14,10 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     customDescription: body.customDescription?.trim() || undefined,
   });
   if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  const snapshot = loadSnapshot();
+  if (snapshot) await warmShare(updated, snapshot, loadSettings().guidance).catch(() => {});
+
   return NextResponse.json(updated);
 }
 

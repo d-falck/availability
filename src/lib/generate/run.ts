@@ -7,6 +7,8 @@
 import { addDays, localDate, todayInTz } from "@/lib/time";
 import { saveSnapshot } from "@/lib/snapshot";
 import { effectiveConfig, loadSettings } from "@/lib/settings";
+import { listShares } from "@/lib/shares";
+import { warmShare } from "@/lib/refine";
 import { fetchCalendar } from "./fetch";
 import { generateCandidates } from "./rules";
 import { applyGuardrails, buildSnapshot } from "./guardrails";
@@ -23,6 +25,17 @@ export async function generate(now?: string) {
   const slots = applyGuardrails(candidates, config);
   const snapshot = buildSnapshot(slots, config, ref);
   saveSnapshot(snapshot);
+
+  // Warm the Stage 2 refine cache for existing shares (no-op without an API key,
+  // and a cache hit when a share's options didn't change).
+  if (process.env.ANTHROPIC_API_KEY) {
+    for (const share of listShares()) {
+      await warmShare(share, snapshot, settings.guidance).catch((e) =>
+        console.error("[refine] warm failed:", e?.message ?? e),
+      );
+    }
+  }
+
   return { snapshot, proposed: candidates.length, source: fetch.source };
 }
 

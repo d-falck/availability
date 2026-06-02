@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { createShare, listShares } from "@/lib/shares";
+import { loadSnapshot } from "@/lib/snapshot";
+import { loadSettings } from "@/lib/settings";
+import { warmShare } from "@/lib/refine";
 import type { Share } from "@/types/share";
 
 export const dynamic = "force-dynamic";
@@ -24,5 +27,9 @@ export async function POST(req: Request) {
     note: body.note?.trim() || undefined,
     customDescription: body.customDescription?.trim() || undefined,
   });
+
+  const snapshot = loadSnapshot();
+  if (snapshot) await warmShare(share, snapshot, loadSettings().guidance).catch(() => {});
+
   return NextResponse.json(share, { status: 201 });
 }
