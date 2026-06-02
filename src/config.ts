@@ -55,6 +55,21 @@ export interface Config {
 
   /** Keyed by PriorityTier (1 = low, 2 = medium, 3 = high). */
   priorityTiers: Record<PriorityTier, TierView>;
+
+  /** Who the page is for and where "suggest these" sends the message. */
+  owner: { name: string; contactEmail: string };
+
+  viewer: {
+    /** One calm line under the title. */
+    tagline: string;
+  };
+
+  /**
+   * Share-link tokens -> tier. The viewer lives at /v/[token]; give different
+   * people different tokens to control which view they get. Treat as
+   * unguessable secrets. The words high/medium/low always work too.
+   */
+  links: Record<string, PriorityTier>;
 }
 
 export const config: Config = {
@@ -91,5 +106,17 @@ export const config: Config = {
     3: { label: "high", maxSlotsPerWeek: 6, allowPrimeWeekend: true },
     2: { label: "medium", maxSlotsPerWeek: 4, allowPrimeWeekend: false },
     1: { label: "low", maxSlotsPerWeek: 2, allowPrimeWeekend: false },
+  },
+
+  owner: { name: "Damon", contactEmail: "damon.falck@gmail.com" },
+
+  viewer: {
+    tagline: "Here's roughly when I'm free over the next few weeks.",
+  },
+
+  links: {
+    "let-s-soon-9f3a": 3,
+    "good-to-see-you-2b7c": 2,
+    "sometime-5e1d": 1,
   },
 };
