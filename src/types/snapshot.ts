@@ -1,34 +1,16 @@
 /**
- * Snapshot — the SANITIZED base produced by Stage 1 (rules). It holds every
- * candidate free window over the horizon, each tagged with which event types it
- * could suit (internal hint) and whether it's an "if need be". There are no
- * event titles/locations/attendees here: the snapshot is the privacy boundary,
- * and it's what the refine step and recipient pages read.
+ * Slot — a single sanitized availability window shown to a recipient. This is
+ * the ONLY availability data that crosses to the browser: precise bounds (so
+ * Mode A booking can reuse them) plus a quiet "if need be". The casual wording
+ * is derived from the bounds at render time (timefmt/dayview).
  */
-
-/** Internal lane — drives reserve rules and suit-tagging, never shown to viewers. */
-export type Lane = "quick" | "evening" | "weekend";
 
 export interface Slot {
   id: string;
-  /** Local date "YYYY-MM-DD". */
+  /** "YYYY-MM-DD" */
   date: string;
-  /** Real free-window bounds, so the view can be specific ("from 7:15pm"). */
   startISO: string;
   endISO: string;
-  lane: Lane;
-  /** A time you'd rather not give up — surfaced as "if need be". */
+  /** A time the host would rather not, but could. */
   ifNeedBe: boolean;
-  /** Standard event-type ids this window could suit (e.g. ["coffee","walk"]). */
-  suits: string[];
 }
-
-export interface Snapshot {
-  generatedAt: string;
-  timezone: string;
-  horizon: { fromISO: string; toISO: string };
-  slots: Slot[];
-}
-
-/** A candidate from Stage 1 before guardrails — same shape, understood untrusted. */
-export type CandidateSlot = Slot;

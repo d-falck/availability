@@ -1,92 +1,93 @@
 /**
- * Stage 2 — refine. Resolves a share against the latest snapshot into the
- * windows its recipient should see.
+ * Resolve a share into the windows its recipient sees. The brain (LLM) proposes
+ * slots over the whole horizon; we validate each against the geometry's free
+ * windows (so nothing collides with a confirmed event) and cache the result.
  *
- * resolveShare() is synchronous and reads the refine cache, so recipient pages
- * stay instant: a warm cache yields the LLM-curated set, a cold cache falls back
- * to the deterministic type filter. warmShare() runs the (cached) LLM pass in
- * the background — at generation time and when a share is created/edited.
+ * resolveShare is async and cache-first: a warm cache returns instantly; a cold
+ * cache calls the brain and caches. warmShare pre-populates the cache at
+ * generation time and on share create/edit.
  */
 
-import { config } from "@/config";
+import { config, eventTypeById } from "@/config";
 import type { Share } from "@/types/share";
-import type { Slot, Snapshot } from "@/types/snapshot";
+import type { Slot } from "@/types/snapshot";
+import type { Schedule } from "@/types/schedule";
 import { loadSettings } from "@/lib/settings";
+import { buildPreferences } from "@/lib/prefs";
+import { proposeSlots, type ProposedSlot } from "@/lib/llm/brain";
 import { getCached, putCached, refineKey } from "@/lib/refinecache";
-import { llmRefine, type RefineCandidate } from "@/lib/llm/refine";
-import { describeWindow } from "@/lib/timefmt";
-import { dayMonth, localMinutes, weekdayShort } from "@/lib/time";
+import { clockToMin, localMinutes, toISO } from "@/lib/time";
 
-/** Map a freeform description onto standard event-type ids (LLM refines further). */
-function typesFromDescription(desc: string): string[] {
-  const d = desc.toLowerCase();
-  const hit: string[] = [];
-  const add = (...ids: string[]) => ids.forEach((id) => hit.includes(id) || hit.push(id));
-  if (/\b(dinner|supper|drinks?|pub|bar|evening|night)\b/.test(d)) add("dinner", "drinks");
-  if (/\b(lunch)\b/.test(d)) add("lunch");
-  if (/\b(coffee|catch[- ]?up|chat|tea)\b/.test(d)) add("coffee");
-  if (/\b(walk|stroll|park|outdoors?)\b/.test(d)) add("walk");
-  if (/\b(weekend|saturday|sunday)\b/.test(d)) add("weekend");
-  return hit.length ? hit : config.eventTypes.map((t) => t.id);
+function meetupText(share: Share): string {
+  const parts = share.typeIds.map((id) => {
+    const t = eventTypeById(id);
+    return t ? `${t.label} (${t.description})` : id;
+  });
+  return parts.join("; ") || "(see description)";
 }
 
-export function shareTypeIds(share: Share): string[] {
-  const ids = new Set(share.typeIds);
-  if (share.customDescription?.trim()) {
-    typesFromDescription(share.customDescription).forEach((id) => ids.add(id));
+function scheduleFingerprint(schedule: Schedule): string {
+  return schedule.days
+    .map((d) => {
+      const free = d.freeWindows.map((w) => w.startISO.slice(11, 16) + w.endISO.slice(11, 16)).join("|");
+      const ev = d.events.map((e) => `${e.title}@${e.start}${e.allDay ? "A" : ""}${e.tentative ? "T" : ""}${e.busy ? "B" : ""}`).join("|");
+      return `${d.date}:${free}:${ev}`;
+    })
+    .join("//");
+}
+
+function keyFor(share: Share, schedule: Schedule, preferences: string): string {
+  return refineKey({
+    typeIds: share.typeIds,
+    customDescription: share.customDescription ?? "",
+    preferences,
+    scheduleFingerprint: scheduleFingerprint(schedule),
+  });
+}
+
+/** Keep only slots that sit inside a free window for their day. */
+function validate(proposed: ProposedSlot[], schedule: Schedule): Slot[] {
+  const byDate = new Map(schedule.days.map((d) => [d.date, d]));
+  const out: Slot[] = [];
+  for (const p of proposed) {
+    const day = byDate.get(p.date);
+    if (!day) continue;
+    const s = clockToMin(p.start);
+    const e = clockToMin(p.end);
+    if (!(e > s)) continue;
+    const fits = day.freeWindows.some(
+      (w) => s >= localMinutes(w.startISO) - 1 && e <= localMinutes(w.endISO) + 1,
+    );
+    if (!fits) continue;
+    out.push({
+      id: `${p.date}-${s}`,
+      date: p.date,
+      startISO: toISO(p.date, s),
+      endISO: toISO(p.date, e),
+      ifNeedBe: !!p.ifNeedBe,
+    });
   }
-  return [...ids];
+  return out.sort((a, b) => a.startISO.localeCompare(b.startISO));
 }
 
-/** The deterministically-matched candidate windows for a share, chronological. */
-export function shareCandidates(share: Share, snapshot: Snapshot): Slot[] {
-  const want = new Set(shareTypeIds(share));
-  return snapshot.slots
-    .filter((s) => s.suits.some((id) => want.has(id)))
-    .sort((a, b) => a.startISO.localeCompare(b.startISO));
-}
+export async function resolveShare(share: Share, schedule: Schedule): Promise<Slot[]> {
+  const preferences = buildPreferences(loadSettings());
+  const key = keyFor(share, schedule, preferences);
 
-const fingerprint = (cands: Slot[]): string =>
-  cands.map((c) => c.id + (c.ifNeedBe ? "!" : "")).sort().join(",");
+  const cached = getCached(key);
+  if (cached) return cached;
 
-const keyFor = (share: Share, cands: Slot[], guidance: string): string =>
-  refineKey({
-    typeIds: shareTypeIds(share),
+  const proposed = await proposeSlots(schedule, {
+    meetup: meetupText(share),
     customDescription: share.customDescription ?? "",
-    guidance,
-    candidateFingerprint: fingerprint(cands),
+    preferences,
   });
-
-export function resolveShare(share: Share, snapshot: Snapshot): Slot[] {
-  const cands = shareCandidates(share, snapshot);
-  const guidance = loadSettings().guidance;
-  const cached = getCached(keyFor(share, cands, guidance));
-  if (!cached) return cands; // deterministic fallback (no key, or not yet warmed)
-
-  const decisions = new Map(cached.keep.map((k) => [k.id, k.ifNeedBe]));
-  return cands
-    .filter((c) => decisions.has(c.id))
-    .map((c) => ({ ...c, ifNeedBe: decisions.get(c.id)! }));
+  const slots = validate(proposed, schedule);
+  putCached(key, slots);
+  return slots;
 }
 
-const toCandidate = (s: Slot): RefineCandidate => ({
-  id: s.id,
-  day: `${weekdayShort(s.date)} ${dayMonth(s.date)}`,
-  time: describeWindow(localMinutes(s.startISO), localMinutes(s.endISO)),
-  lane: s.lane,
-  ifNeedBe: s.ifNeedBe,
-});
-
-/** Run the (cached) LLM refine for a share. No-op without an API key. */
-export async function warmShare(share: Share, snapshot: Snapshot, guidance: string): Promise<void> {
-  const cands = shareCandidates(share, snapshot);
-  const key = keyFor(share, cands, guidance);
-  if (getCached(key)) return;
-
-  const result = await llmRefine(cands.map(toCandidate), {
-    typeLabels: share.typeIds.map((id) => config.eventTypes.find((t) => t.id === id)?.label ?? id),
-    customDescription: share.customDescription ?? "",
-    guidance,
-  });
-  if (result) putCached(key, result);
+/** Ensure a share's result is cached (no-op if already warm). */
+export async function warmShare(share: Share, schedule: Schedule): Promise<void> {
+  await resolveShare(share, schedule);
 }

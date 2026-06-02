@@ -6,6 +6,22 @@ description), send the link (or paste the times), and it **stays up to date**
 with your calendar. It never lets anyone book — it shows the *shape* of your
 free time so scheduling is easy.
 
+## Architecture (LLM-brain)
+
+```
+Google Calendar(s) ─► GEOMETRY (deterministic) ─► schedule.json ─► BRAIN (LLM, per share) ─► validate ─► /v/[share]
+   (private, full)     free windows minus           (server-only:    reasons over events +     no overlap    (sanitized
+                       confirmed timed events       windows+events)  whole horizon + prefs     w/ confirmed   slots only)
+                       (all-day/tentative = context)                 → proposes slots          events
+```
+
+- **Geometry** (`src/lib/generate/geometry.ts`): exact free windows = the daily span minus *confirmed timed* events. All-day / tentative events are passed through as **context**, not blocks. Deterministic and precise (also the basis for Mode A booking).
+- **Brain** (`src/lib/llm/brain.ts`): per share, sees the whole-horizon schedule (free windows + real events) + the meet-up + soft preferences, and proposes slots — reasoning about all-day holds, deadlines, busy weeks, energy. Output **validated** to sit inside a free window. **Cached** (`refinecache.ts`) by a fingerprint of (schedule + types + description + preferences). Needs `ANTHROPIC_API_KEY`.
+- **Preferences** (`src/lib/prefs.ts`): the Settings (reserve, windows, all-day handling, free-text guidance) become *soft* prompt text — no hard-coded reserve.
+- **Recipient page**: minimal, chronological, casual labels derived from precise bounds.
+
+<details><summary>(superseded earlier design)</summary>
+
 ## Architecture
 
 ```
@@ -61,3 +77,5 @@ npx tsx src/lib/preview/render.tsx   # write self-contained preview HTML to data
 
 > Previews (`data/preview-*.html`) are generated artifacts, committed only for
 > easy viewing. GitHub shows `.html` as source — download to view rendered.
+
+</details>

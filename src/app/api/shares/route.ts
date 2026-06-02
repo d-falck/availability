@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { createShare, listShares } from "@/lib/shares";
-import { loadSnapshot } from "@/lib/snapshot";
-import { loadSettings } from "@/lib/settings";
+import { loadSchedule } from "@/lib/schedule";
 import { warmShare } from "@/lib/refine";
 import type { Share } from "@/types/share";
 
@@ -28,8 +27,8 @@ export async function POST(req: Request) {
     customDescription: body.customDescription?.trim() || undefined,
   });
 
-  const snapshot = loadSnapshot();
-  if (snapshot) await warmShare(share, snapshot, loadSettings().guidance).catch(() => {});
+  const schedule = loadSchedule();
+  if (schedule) await warmShare(share, schedule).catch(() => {});
 
   return NextResponse.json(share, { status: 201 });
 }

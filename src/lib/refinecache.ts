@@ -1,33 +1,29 @@
 /**
- * Cache for the Stage 2 LLM refine pass, persisted under DATA_DIR. Keyed by a
- * fingerprint of the inputs (candidate windows + event types + description +
- * guidance), so a calendar change that doesn't affect a given share's options
- * is a cache hit and costs no tokens. Pruned to the most recent entries.
+ * Cache for the brain's per-share output, persisted under DATA_DIR. Keyed by a
+ * fingerprint of the inputs (schedule content + event types + description +
+ * preferences), so a calendar change that doesn't affect a share's options is a
+ * cache hit and costs no tokens. Pruned to the most recent entries.
  */
 
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import { dataPath } from "./paths";
+import type { Slot } from "@/types/snapshot";
 
-export interface RefineResult {
-  /** Window ids to show, with the final "if need be" decision. */
-  keep: { id: string; ifNeedBe: boolean }[];
-}
-
-type CacheFile = Record<string, { result: RefineResult; at: number }>;
+type CacheFile = Record<string, { slots: Slot[]; at: number }>;
 const MAX_ENTRIES = 60;
 
 export function refineKey(parts: {
   typeIds: string[];
   customDescription: string;
-  guidance: string;
-  candidateFingerprint: string;
+  preferences: string;
+  scheduleFingerprint: string;
 }): string {
   const basis = JSON.stringify({
     t: [...parts.typeIds].sort(),
     d: parts.customDescription,
-    g: parts.guidance,
-    c: parts.candidateFingerprint,
+    p: parts.preferences,
+    s: parts.scheduleFingerprint,
   });
   return createHash("sha256").update(basis).digest("hex").slice(0, 24);
 }
@@ -40,13 +36,13 @@ function read(): CacheFile {
   }
 }
 
-export function getCached(key: string): RefineResult | null {
-  return read()[key]?.result ?? null;
+export function getCached(key: string): Slot[] | null {
+  return read()[key]?.slots ?? null;
 }
 
-export function putCached(key: string, result: RefineResult): void {
+export function putCached(key: string, slots: Slot[]): void {
   const cache = read();
-  cache[key] = { result, at: Date.now() };
+  cache[key] = { slots, at: Date.now() };
   const keys = Object.keys(cache).sort((a, b) => cache[b].at - cache[a].at);
   const pruned: CacheFile = {};
   for (const k of keys.slice(0, MAX_ENTRIES)) pruned[k] = cache[k];

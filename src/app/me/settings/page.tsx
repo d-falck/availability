@@ -5,21 +5,11 @@
  */
 
 import Link from "next/link";
-import { config, type EventType } from "@/config";
+import { config } from "@/config";
 import { GoogleSection } from "../GoogleSection";
 import { PreferencesForm } from "../PreferencesForm";
 
 export const dynamic = "force-dynamic";
-
-function whenText(t: EventType): string {
-  if (t.lanes.length === 1 && t.lanes[0] === "weekend") return "weekends";
-  const parts: string[] = [];
-  if (t.bands.includes("midday")) parts.push("around midday");
-  else if (t.bands.includes("day")) parts.push("daytime");
-  if (t.bands.includes("evening")) parts.push("evenings");
-  const base = parts.join(" & ") || "any time";
-  return t.lanes.includes("weekend") ? `${base}, incl. weekends` : `${base} (weekdays)`;
-}
 
 export default function SettingsPage() {
   return (
@@ -53,14 +43,14 @@ export default function SettingsPage() {
             </h2>
             <div className="rounded-2xl border border-stone-200 bg-white p-5 dark:border-stone-800 dark:bg-stone-900">
               <p className="mb-3 text-[12px] leading-relaxed text-stone-400 dark:text-stone-500">
-                When you compose a link you tick these; the page then shows the times that suit any
-                you chose. (Defined in code for now.)
+                When you compose a link you tick these; the assistant uses the description to pick
+                fitting times. (Defined in code for now.)
               </p>
-              <ul className="flex flex-col gap-1.5">
+              <ul className="flex flex-col gap-2">
                 {config.eventTypes.map((t) => (
-                  <li key={t.id} className="flex justify-between gap-4 text-[14px]">
+                  <li key={t.id} className="text-[14px]">
                     <span className="text-stone-700 dark:text-stone-300">{t.label}</span>
-                    <span className="text-stone-400 dark:text-stone-500">{whenText(t)}</span>
+                    <span className="text-stone-400 dark:text-stone-500"> — {t.description}</span>
                   </li>
                 ))}
               </ul>

@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { deleteShare, getShare, updateShare } from "@/lib/shares";
-import { loadSnapshot } from "@/lib/snapshot";
-import { loadSettings } from "@/lib/settings";
+import { loadSchedule } from "@/lib/schedule";
 import { warmShare } from "@/lib/refine";
 import type { Share } from "@/types/share";
 
@@ -15,8 +14,8 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   });
   if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const snapshot = loadSnapshot();
-  if (snapshot) await warmShare(updated, snapshot, loadSettings().guidance).catch(() => {});
+  const schedule = loadSchedule();
+  if (schedule) await warmShare(updated, schedule).catch(() => {});
 
   return NextResponse.json(updated);
 }

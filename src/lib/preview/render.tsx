@@ -1,7 +1,8 @@
 /**
- * Renders the real components to self-contained HTML files (compiled CSS inlined,
- * offline-safe) so the pages can be shared and judged without a server. Produces
- * a few example recipient pages plus the private composing page.
+ * Renders the pages to self-contained HTML for offline viewing. The recipient
+ * preview is built from the geometry's raw free windows (the LLM curation needs
+ * the API key, which lives on Fly), so it shows layout/labels, not the final
+ * curation.
  *
  *   npx tsx src/lib/preview/render.tsx   ->   data/preview-*.html
  */
@@ -15,20 +16,15 @@ import { config } from "@/config";
 import { ViewerPage } from "@/components/viewer/ViewerPage";
 import { Composer } from "@/app/me/Composer";
 import { CONTROLLER_JS } from "@/components/viewer/controller";
-import { resolveShare } from "@/lib/refine";
-import { loadSnapshot } from "@/lib/snapshot";
-import type { Share } from "@/types/share";
+import { loadSchedule } from "@/lib/schedule";
+import type { Slot } from "@/types/snapshot";
 
 const root = process.cwd();
-const snapshot = loadSnapshot();
-if (!snapshot) throw new Error("No snapshot — run `npm run generate` first.");
+const schedule = loadSchedule();
+if (!schedule) throw new Error("No schedule — run `npm run generate` first.");
 
-// Compile Tailwind once for all files.
 const cssTmp = resolve(root, "data", "_preview.css");
-execSync(`npx tailwindcss -i ./src/app/globals.css -o ${cssTmp} --minify`, {
-  cwd: root,
-  stdio: "ignore",
-});
+execSync(`npx tailwindcss -i ./src/app/globals.css -o ${cssTmp} --minify`, { cwd: root, stdio: "ignore" });
 const css = readFileSync(cssTmp, "utf8");
 rmSync(cssTmp, { force: true });
 
@@ -40,39 +36,13 @@ function doc(title: string, body: string, withController = false): string {
 <body class="bg-white text-stone-900 dark:bg-stone-950 dark:text-stone-100">${body}${scripts}</body></html>`;
 }
 
-function mockShare(partial: Partial<Share>): Share {
-  return { id: "preview", typeIds: [], createdAt: new Date().toISOString(), ...partial };
-}
+// Recipient preview: raw free windows as slots (geometry only, no curation).
+const slots: Slot[] = schedule.days.flatMap((d) =>
+  d.freeWindows.map((w) => ({ id: `${d.date}-${w.startISO}`, date: d.date, startISO: w.startISO, endISO: w.endISO, ifNeedBe: false })),
+);
+const recipient = renderToStaticMarkup(React.createElement(ViewerPage, { slots }));
+writeFileSync(resolve(root, "data", "preview-recipient.html"), doc("Availability", recipient, true));
 
-const recipients: { file: string; title: string; share: Share }[] = [
-  {
-    file: "preview-coffee.html",
-    title: "Coffee / walk",
-    share: mockShare({
-      recipient: "Sam",
-      typeIds: ["coffee", "walk", "lunch"],
-      note: "Would be lovely to catch up — any of these work?",
-    }),
-  },
-  {
-    file: "preview-dinner.html",
-    title: "Dinner / drinks",
-    share: mockShare({ typeIds: ["dinner", "drinks"], note: "Dinner sometime soon?" }),
-  },
-  {
-    file: "preview-weekend.html",
-    title: "Weekend",
-    share: mockShare({ typeIds: ["weekend"] }),
-  },
-];
-
-for (const r of recipients) {
-  const slots = resolveShare(r.share, snapshot);
-  const body = renderToStaticMarkup(React.createElement(ViewerPage, { slots }));
-  writeFileSync(resolve(root, "data", r.file), doc(r.title, body, true));
-}
-
-// Private composing page (static — shows the look; live interactivity needs the dev server).
 const meBody = renderToStaticMarkup(
   React.createElement(
     "main",
@@ -88,8 +58,8 @@ const meBody = renderToStaticMarkup(
       React.createElement(Composer, {
         eventTypes: config.eventTypes.map((t) => ({ id: t.id, label: t.label })),
         initialShares: [
-          mockShare({ recipient: "Sam", typeIds: ["coffee", "walk"] }),
-          mockShare({ recipient: "Priya", typeIds: ["dinner", "drinks"] }),
+          { id: "demo1", recipient: "Sam", typeIds: ["coffee", "walk"], createdAt: "" },
+          { id: "demo2", recipient: "Priya", typeIds: ["dinner", "drinks"], createdAt: "" },
         ],
       }),
     ),
@@ -97,4 +67,4 @@ const meBody = renderToStaticMarkup(
 );
 writeFileSync(resolve(root, "data", "preview-me.html"), doc("Your page", meBody));
 
-console.log("wrote data/preview-{coffee,dinner,weekend,me}.html");
+console.log("wrote data/preview-{recipient,me}.html");

@@ -10,6 +10,7 @@ export async function POST(req: Request) {
   if (secret && new URL(req.url).searchParams.get("secret") !== secret) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
-  const { snapshot, source } = await generate();
-  return NextResponse.json({ ok: true, source, windows: snapshot.slots.length });
+  const { schedule, source } = await generate();
+  const free = schedule.days.reduce((n, d) => n + d.freeWindows.length, 0);
+  return NextResponse.json({ ok: true, source, freeWindows: free });
 }
