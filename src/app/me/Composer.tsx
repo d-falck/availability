@@ -203,10 +203,25 @@ function ShareRow({
 }) {
   const [editing, setEditing] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
+  const [textValue, setTextValue] = useState("");
   const flash = (what: string) => {
     setCopied(what);
     setTimeout(() => setCopied(null), 1600);
   };
+
+  // Pre-fetch the text version so "Copy as text" can write to the clipboard
+  // synchronously on click (an async fetch first loses the user-activation
+  // the clipboard API requires, so the copy would silently fail).
+  React.useEffect(() => {
+    let alive = true;
+    fetch(`/api/shares/${share.id}/text`)
+      .then((r) => r.text())
+      .then((t) => alive && setTextValue(t))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [share.id, share.typeIds, share.customDescription, share.note]);
 
   const labels = share.typeIds
     .map((id) => eventTypes.find((t) => t.id === id)?.label ?? id)
@@ -218,7 +233,7 @@ function ShareRow({
     flash("link");
   }
   async function copyText() {
-    const text = await (await fetch(`/api/shares/${share.id}/text`)).text();
+    const text = textValue || (await (await fetch(`/api/shares/${share.id}/text`)).text());
     await navigator.clipboard.writeText(text);
     flash("text");
   }
