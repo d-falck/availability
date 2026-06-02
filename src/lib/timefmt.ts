@@ -35,19 +35,26 @@ function fmtRange(a: number, b: number): string {
   return `${fmtTime(a).replace(/(am|pm)$/, "")}–${fmtTime(b)}`;
 }
 
-const near = (a: number, b: number, tol = 31) => Math.abs(a - b) <= tol;
 const overlap = (s: number, e: number, p: { start: number; end: number }) =>
   Math.max(0, Math.min(e, p.end) - Math.max(s, p.start));
 
+/**
+ * Describe one continuous free window. A period word is only used when the
+ * window substantially covers that period; partial windows get an explicit
+ * range, so we never claim "morning and afternoon" for a 10am–1pm gap.
+ */
 export function describeWindow(startMin: number, endMin: number): string {
-  const covered = PERIODS.filter((p) => overlap(startMin, endMin, p) >= 60);
+  const covered = PERIODS.map((p) => ({ p, frac: overlap(startMin, endMin, p) / (p.end - p.start) }))
+    .filter((x) => x.frac >= 0.5);
+  const names = covered.map((x) => x.p.name);
 
-  if (covered.length >= 3) return "all day";
-  if (covered.length === 2) return `${covered[0].name} and ${covered[1].name}`;
-  if (covered.length === 1) {
-    const p = covered[0];
-    // Use the period word only when the window genuinely fills it; else be exact.
-    if (near(startMin, p.start) && near(endMin, p.end)) return p.name;
+  if (covered.length === 3) return "all day";
+  if (covered.length === 2) {
+    if (names[0] === "afternoon" && names[1] === "evening") return "afternoon and evening";
+    if (names[0] === "morning" && names[1] === "afternoon") return "daytime";
+    return names.join(" and ");
   }
+  // Single period: use the word only if it nearly fills it; otherwise be exact.
+  if (covered.length === 1 && covered[0].frac >= 0.85) return covered[0].p.name;
   return fmtRange(startMin, endMin);
 }
