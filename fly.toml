@@ -1,5 +1,5 @@
-# Fly.io config. Rename `app` to your chosen app name (must match `fly apps create`).
-app = "availability"
+# Fly.io config. `app` must match `fly apps create` and your APP_URL secret.
+app = "damon-availability"
 primary_region = "lhr"  # London — closest to Europe/London
 
 [build]
