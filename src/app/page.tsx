@@ -1,12 +1,19 @@
+import Link from "next/link";
+
 export default function Home() {
   return (
-    <main className="mx-auto flex min-h-screen max-w-xl flex-col justify-center gap-3 px-6 text-neutral-800">
-      <h1 className="text-lg font-medium">Availability</h1>
-      <p className="text-sm text-neutral-500">
-        A calmer way to share when I&apos;m free. The social availability view
-        lives at <code className="text-neutral-700">/v/[link]</code> (coming in
-        Phase 3).
+    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-4 px-6 text-stone-800">
+      <h1 className="text-[15px] font-medium text-stone-400">availability</h1>
+      <p className="text-[15px] leading-relaxed text-stone-600">
+        Compose a share on your private page, send the link (or paste the times). It stays up to
+        date with your calendar.
       </p>
+      <Link
+        href="/me"
+        className="self-start rounded-full bg-stone-900 px-4 py-2 text-[14px] font-medium text-white transition hover:bg-stone-700"
+      >
+        Go to your page →
+      </Link>
     </main>
   );
 }

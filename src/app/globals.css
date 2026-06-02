@@ -11,33 +11,23 @@ html {
   text-rendering: optimizeLegibility;
 }
 
-/* Selectable slot card — visual states driven by the tiny viewer controller. */
+/* Selectable day row — visual states driven by the tiny viewer controller. */
 .slot {
   cursor: pointer;
-  transition:
-    transform 0.12s ease,
-    box-shadow 0.12s ease,
-    border-color 0.12s ease,
-    background-color 0.12s ease;
+  transition: background-color 0.12s ease;
 }
 .slot:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px -12px rgb(0 0 0 / 0.18);
+  background-color: #fafaf9;
 }
 .slot .check {
   opacity: 0;
-  transform: scale(0.5);
-  transition:
-    opacity 0.14s ease,
-    transform 0.14s ease;
-}
-.slot.is-selected {
-  border-color: rgb(41 37 36) !important; /* stone-800 */
-  box-shadow: 0 0 0 1.5px rgb(41 37 36);
+  transition: opacity 0.14s ease;
 }
 .slot.is-selected .check {
   opacity: 1;
-  transform: scale(1);
+}
+.slot.is-selected span:nth-child(2) {
+  font-weight: 600;
 }
 
 /* Selection bar slides up when something is picked. */

@@ -1,32 +1,34 @@
 /**
  * Single source of truth for all tunables. Edit this file to reshape how your
- * availability is computed and displayed. Nothing user-facing is hard-coded
- * elsewhere.
+ * availability is computed and which event types the private page offers.
  */
 
-import type { PriorityTier } from "@/types/snapshot";
+import type { Lane } from "@/types/snapshot";
 
 export type DayCode = "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN";
 
 /** "HH:MM" 24h local time. */
 export type ClockTime = string;
 
-export interface TierView {
-  /** Soft ceiling on slots shown per week for this tier. */
-  maxSlotsPerWeek: number;
-  /** Whether prime weekend time (Sat eve, Sun) can be offered to this tier. */
-  allowPrimeWeekend: boolean;
-  /** Friendly label shown nowhere private — used in viewer copy if desired. */
+/** Coarse time-of-day band an event type prefers. */
+export type TimeBand = "day" | "midday" | "evening";
+
+export interface EventType {
+  id: string;
   label: string;
+  /** Internal lanes whose windows can suit this type. */
+  lanes: Lane[];
+  /** Time-of-day bands this type wants a window to overlap. */
+  bands: TimeBand[];
+  /** Minimum overlap (mins) with a band for a window to count. */
+  minMins: number;
 }
 
 export interface Config {
   timezone: "Europe/London";
   horizonDays: number;
 
-  /** Daytime "pop out of work" window. */
   dayWindow: { start: ClockTime; end: ClockTime };
-  /** Evening dinner/drinks window. */
   eveningWindow: { start: ClockTime; end: ClockTime };
 
   durations: {
@@ -36,40 +38,17 @@ export interface Config {
   };
 
   eveningReserve: {
-    /** Never expose more than (free evenings in week − this) evening slots. */
+    /** Never expose more than (free evenings in week − this) evening windows. */
     minFreeEveningsPerWeek: number;
-    /** Weeknights that are ALWAYS reserved — never offered, hard guardrail. */
+    /** Weeknights always reserved — never offered. */
     pinnedReservedNights: DayCode[];
-    /** Whether reserved evenings are hidden entirely or shown greyed-out. */
-    reservedDisplay: "hidden" | "greyed";
   };
 
-  preferences: {
-    /** Bias "preferred" marking toward Saturday/Sunday. */
-    favorWeekends: boolean;
-    /** Rough number of weekday-evening slots to aim to surface per week. */
-    preferredWeekdayEveningGaps: number;
-    /** Free-text steer handed to the LLM verbatim — your personal scheduling taste. */
-    freeformGuidance: string;
-  };
+  /** Standard event types offered on the private page. */
+  eventTypes: EventType[];
 
-  /** Keyed by PriorityTier (1 = low, 2 = medium, 3 = high). */
-  priorityTiers: Record<PriorityTier, TierView>;
-
-  /** Who the page is for and where "suggest these" sends the message. */
+  /** Who the pages are for and where "suggest these" replies go. */
   owner: { name: string; contactEmail: string };
-
-  viewer: {
-    /** One calm line under the title. */
-    tagline: string;
-  };
-
-  /**
-   * Share-link tokens -> tier. The viewer lives at /v/[token]; give different
-   * people different tokens to control which view they get. Treat as
-   * unguessable secrets. The words high/medium/low always work too.
-   */
-  links: Record<string, PriorityTier>;
 }
 
 export const config: Config = {
@@ -88,35 +67,19 @@ export const config: Config = {
   eveningReserve: {
     minFreeEveningsPerWeek: 2,
     pinnedReservedNights: ["MON"],
-    reservedDisplay: "hidden",
   },
 
-  preferences: {
-    favorWeekends: true,
-    preferredWeekdayEveningGaps: 1,
-    freeformGuidance: [
-      "I like to keep evenings calm when I have a heavy meeting day.",
-      "Weekends are the nicest time for a proper walk or a long meal.",
-      "Don't suggest squeezing a coffee into a back-to-back morning.",
-      "A gap right after a big block is great for getting some air.",
-    ].join(" "),
-  },
-
-  priorityTiers: {
-    3: { label: "high", maxSlotsPerWeek: 6, allowPrimeWeekend: true },
-    2: { label: "medium", maxSlotsPerWeek: 4, allowPrimeWeekend: false },
-    1: { label: "low", maxSlotsPerWeek: 2, allowPrimeWeekend: false },
-  },
+  eventTypes: [
+    { id: "coffee", label: "Coffee", lanes: ["quick", "weekend"], bands: ["day"], minMins: 30 },
+    { id: "walk", label: "Walk", lanes: ["quick", "weekend"], bands: ["day"], minMins: 30 },
+    { id: "lunch", label: "Lunch", lanes: ["quick", "weekend"], bands: ["midday"], minMins: 45 },
+    { id: "dinner", label: "Dinner", lanes: ["evening", "weekend"], bands: ["evening"], minMins: 90 },
+    { id: "drinks", label: "Drinks", lanes: ["evening", "weekend"], bands: ["evening"], minMins: 90 },
+    { id: "weekend", label: "Weekend meetup", lanes: ["weekend"], bands: ["day", "evening"], minMins: 60 },
+  ],
 
   owner: { name: "Damon", contactEmail: "damon.falck@gmail.com" },
-
-  viewer: {
-    tagline: "Here's roughly when I'm free over the next few weeks.",
-  },
-
-  links: {
-    "let-s-soon-9f3a": 3,
-    "good-to-see-you-2b7c": 2,
-    "sometime-5e1d": 1,
-  },
 };
+
+export const eventTypeById = (id: string): EventType | undefined =>
+  config.eventTypes.find((t) => t.id === id);

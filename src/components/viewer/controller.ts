@@ -17,9 +17,8 @@ export const CONTROLLER_JS = String.raw`
 
   function render() {
     var n = selected.size;
-    if (countEl) countEl.textContent = n + (n === 1 ? " picked" : " picked");
+    if (countEl) countEl.textContent = n + " selected";
     if (bar) bar.classList.toggle("is-active", n > 0);
-    if (sendEl) sendEl.textContent = n > 0 ? "Suggest these →" : "Suggest these →";
   }
 
   document.querySelectorAll("[data-slot-id]").forEach(function (el) {
