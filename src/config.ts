@@ -47,11 +47,9 @@ export const config: Config = {
   },
 
   eventTypes: [
-    { id: "coffee", label: "Coffee", description: "a short daytime coffee or catch-up, ~30–60 min" },
-    { id: "walk", label: "Walk", description: "a daytime or weekend walk, ~30–90 min" },
+    { id: "coffee", label: "Coffee or walk", description: "a short daytime coffee, catch-up or walk, ~30–60 min" },
     { id: "lunch", label: "Lunch", description: "lunch around midday, ~1 hr" },
-    { id: "dinner", label: "Dinner", description: "an evening dinner, ~2 hrs, ideally not on a heavy day" },
-    { id: "drinks", label: "Drinks", description: "evening drinks, ~2–3 hrs, weekdays or weekend" },
+    { id: "dinner", label: "Dinner or drinks", description: "an evening dinner or drinks, ~2–3 hrs, ideally not on a heavy day" },
     { id: "weekend", label: "Weekend meetup", description: "a longer, unhurried weekend meet-up" },
   ],
 

@@ -15,7 +15,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const schedule = loadSchedule();
-  if (schedule) await warmShare(updated, schedule).catch(() => {});
+  if (schedule) void warmShare(updated, schedule).catch(() => {});
 
   return NextResponse.json(updated);
 }

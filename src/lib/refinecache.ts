@@ -10,7 +10,12 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { dataPath } from "./paths";
 import type { Slot } from "@/types/snapshot";
 
-type CacheFile = Record<string, { slots: Slot[]; at: number }>;
+export interface CachedRefine {
+  slots: Slot[];
+  reasoning: string;
+}
+
+type CacheFile = Record<string, CachedRefine & { at: number }>;
 const MAX_ENTRIES = 60;
 
 export function refineKey(parts: {
@@ -36,13 +41,14 @@ function read(): CacheFile {
   }
 }
 
-export function getCached(key: string): Slot[] | null {
-  return read()[key]?.slots ?? null;
+export function getCached(key: string): CachedRefine | null {
+  const hit = read()[key];
+  return hit ? { slots: hit.slots, reasoning: hit.reasoning } : null;
 }
 
-export function putCached(key: string, slots: Slot[]): void {
+export function putCached(key: string, value: CachedRefine): void {
   const cache = read();
-  cache[key] = { slots, at: Date.now() };
+  cache[key] = { ...value, at: Date.now() };
   const keys = Object.keys(cache).sort((a, b) => cache[b].at - cache[a].at);
   const pruned: CacheFile = {};
   for (const k of keys.slice(0, MAX_ENTRIES)) pruned[k] = cache[k];

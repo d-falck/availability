@@ -27,8 +27,10 @@ export async function POST(req: Request) {
     customDescription: body.customDescription?.trim() || undefined,
   });
 
+  // Warm the brain cache in the background so creating a link is instant; the
+  // recipient page also warms on a cold cache, so nothing is lost if this is cut short.
   const schedule = loadSchedule();
-  if (schedule) await warmShare(share, schedule).catch(() => {});
+  if (schedule) void warmShare(share, schedule).catch(() => {});
 
   return NextResponse.json(share, { status: 201 });
 }

@@ -3,6 +3,9 @@
 import * as React from "react";
 import { useState } from "react";
 import type { Share } from "@/types/share";
+import { dayMonth, weekdayShort } from "@/lib/time";
+
+type Explanation = { reasoning: string; days: { date: string; label: string; ifNeedBe: boolean }[] };
 
 type TypeOption = { id: string; label: string };
 
@@ -253,6 +256,24 @@ function ShareRow({
     return null;
   }
 
+  const [why, setWhy] = useState<Explanation | null>(null);
+  const [whyOpen, setWhyOpen] = useState(false);
+  const [whyLoading, setWhyLoading] = useState(false);
+
+  async function toggleWhy() {
+    if (whyOpen) return setWhyOpen(false);
+    setWhyOpen(true);
+    if (!why) {
+      setWhyLoading(true);
+      try {
+        const r = await fetch(`/api/shares/${share.id}/explain`);
+        setWhy(r.ok ? await r.json() : { reasoning: "Couldn't load.", days: [] });
+      } finally {
+        setWhyLoading(false);
+      }
+    }
+  }
+
   const btn = `${pill} border-stone-200 text-stone-600 hover:border-stone-300 dark:border-stone-700 dark:text-stone-300 dark:hover:border-stone-500`;
   const copiedBtn = `${pill} border-emerald-500 text-emerald-600 dark:border-emerald-500 dark:text-emerald-400`;
 
@@ -290,6 +311,9 @@ function ShareRow({
             <button onClick={() => setEditing(true)} className={btn}>
               Edit
             </button>
+            <button onClick={toggleWhy} className={btn}>
+              {whyOpen ? "Hide why" : "Why?"}
+            </button>
             <button
               onClick={remove}
               className={`${pill} border-transparent text-stone-400 hover:text-red-500 dark:text-stone-500`}
@@ -297,6 +321,28 @@ function ShareRow({
               Delete
             </button>
           </div>
+
+          {whyOpen && (
+            <div className="mt-1 rounded-xl border border-stone-100 bg-stone-50 p-3 text-[13px] dark:border-stone-800 dark:bg-stone-950/40">
+              {whyLoading && <p className="text-stone-400">Asking the assistant…</p>}
+              {why && !whyLoading && (
+                <>
+                  {why.reasoning && (
+                    <p className="leading-relaxed text-stone-600 dark:text-stone-300">{why.reasoning}</p>
+                  )}
+                  <ul className="mt-2 flex flex-col gap-0.5 text-stone-500 dark:text-stone-400">
+                    {why.days.map((d) => (
+                      <li key={d.date}>
+                        {weekdayShort(d.date)} {dayMonth(d.date)} — {d.label}
+                        {d.ifNeedBe && <span className="italic text-stone-400"> (if need be)</span>}
+                      </li>
+                    ))}
+                    {why.days.length === 0 && <li className="italic">No times chosen.</li>}
+                  </ul>
+                </>
+              )}
+            </div>
+          )}
         </>
       )}
     </div>

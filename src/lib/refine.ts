@@ -16,6 +16,7 @@ import { loadSettings } from "@/lib/settings";
 import { buildPreferences } from "@/lib/prefs";
 import { proposeSlots, type ProposedSlot } from "@/lib/llm/brain";
 import { getCached, putCached, refineKey } from "@/lib/refinecache";
+import { groupByDay } from "@/lib/dayview";
 import { clockToMin, localMinutes, toISO } from "@/lib/time";
 
 function meetupText(share: Share): string {
@@ -75,19 +76,60 @@ export async function resolveShare(share: Share, schedule: Schedule): Promise<Sl
   const key = keyFor(share, schedule, preferences);
 
   const cached = getCached(key);
-  if (cached) return cached;
+  if (cached) return cached.slots;
 
-  const proposed = await proposeSlots(schedule, {
+  const { slots: proposed, reasoning } = await proposeSlots(schedule, {
     meetup: meetupText(share),
     customDescription: share.customDescription ?? "",
     preferences,
   });
   const slots = validate(proposed, schedule);
-  putCached(key, slots);
+  putCached(key, { slots, reasoning });
   return slots;
 }
 
 /** Ensure a share's result is cached (no-op if already warm). */
 export async function warmShare(share: Share, schedule: Schedule): Promise<void> {
   await resolveShare(share, schedule);
+}
+
+/** The brain's reasoning + chosen days for a share, for the "Why?" view. */
+export async function explainShare(
+  share: Share,
+  schedule: Schedule,
+): Promise<{ reasoning: string; days: ReturnType<typeof groupByDay> }> {
+  await resolveShare(share, schedule); // warm if cold
+  const cached = getCached(keyFor(share, schedule, buildPreferences(loadSettings())));
+  return { reasoning: cached?.reasoning ?? "", days: groupByDay(cached?.slots ?? []) };
+}
+
+/** Deeper diagnostics — re-runs the brain (bypassing cache) to show the raw call. */
+export async function debugShare(share: Share, schedule: Schedule) {
+  const preferences = buildPreferences(loadSettings());
+  const meetup = meetupText(share);
+  const { slots: proposed, reasoning } = await proposeSlots(schedule, {
+    meetup,
+    customDescription: share.customDescription ?? "",
+    preferences,
+  });
+  const slots = validate(proposed, schedule);
+  return {
+    share,
+    meetup,
+    preferences,
+    schedule: {
+      generatedAt: schedule.generatedAt,
+      horizon: schedule.horizon,
+      days: schedule.days.length,
+      totalFreeWindows: schedule.days.reduce((n, d) => n + d.freeWindows.length, 0),
+      sample: schedule.days.slice(0, 7).map((d) => ({
+        date: d.date,
+        free: d.freeWindows.map((w) => `${w.startISO.slice(11, 16)}-${w.endISO.slice(11, 16)}`),
+        events: d.events.map((e) => e.title),
+      })),
+    },
+    reasoning,
+    proposedByBrain: proposed,
+    keptAfterValidation: slots,
+  };
 }

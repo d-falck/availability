@@ -77,6 +77,12 @@ const TOOL = {
   input_schema: {
     type: "object",
     properties: {
+      reasoning: {
+        type: "string",
+        description:
+          "A brief, friendly explanation (2-4 sentences) of how you chose — what you " +
+          "favoured, what you avoided and why. Shown to the host, not the recipient.",
+      },
       slots: {
         type: "array",
         items: {
@@ -91,14 +97,19 @@ const TOOL = {
         },
       },
     },
-    required: ["slots"],
+    required: ["reasoning", "slots"],
   },
 } as const;
+
+export interface BrainResult {
+  slots: ProposedSlot[];
+  reasoning: string;
+}
 
 export async function proposeSlots(
   schedule: Schedule,
   context: BrainContext,
-): Promise<ProposedSlot[]> {
+): Promise<BrainResult> {
   const { default: Anthropic } = await import("@anthropic-ai/sdk");
   const client = new Anthropic();
 
@@ -137,8 +148,10 @@ export async function proposeSlots(
   });
 
   const block = msg.content.find((b) => b.type === "tool_use");
-  if (!block || block.type !== "tool_use") return [];
-  return ((block.input as { slots: ProposedSlot[] }).slots ?? []).filter(
-    (s) => s.date && s.start && s.end,
-  );
+  if (!block || block.type !== "tool_use") return { slots: [], reasoning: "" };
+  const input = block.input as { slots?: ProposedSlot[]; reasoning?: string };
+  return {
+    slots: (input.slots ?? []).filter((s) => s.date && s.start && s.end),
+    reasoning: input.reasoning ?? "",
+  };
 }
