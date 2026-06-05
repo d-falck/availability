@@ -58,9 +58,10 @@ const meBody = renderToStaticMarkup(
       React.createElement(Composer, {
         eventTypes: config.eventTypes.map((t) => ({ id: t.id, label: t.label })),
         initialShares: [
-          { id: "demo1", recipient: "Sam", typeIds: ["coffee", "walk"], createdAt: "" },
-          { id: "demo2", recipient: "Priya", typeIds: ["dinner", "drinks"], createdAt: "" },
+          { id: "demo1", recipient: "Sam", typeIds: ["coffee"], createdAt: "" },
+          { id: "demo2", recipient: "Priya", typeIds: ["dinner"], createdAt: "" },
         ],
+        updatedAt: { demo1: Date.now(), demo2: null },
       }),
     ),
   ),

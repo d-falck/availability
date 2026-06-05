@@ -44,6 +44,8 @@ const SYSTEM = [
   "  out of a workday); false for comfortable, good options.",
   "- Quality over quantity, but don't be stingy. Never propose outside a free",
   "  window. Use HH:MM 24h, and keep each slot within a single day.",
+  "- For each slot's date, COPY the exact YYYY-MM-DD shown at the start of that",
+  "  day's line — do not reformat or infer it.",
 ].join("\n");
 
 function formatSchedule(schedule: Schedule): string {
@@ -65,7 +67,7 @@ function formatSchedule(schedule: Schedule): string {
       })
       .join("; ");
     lines.push(
-      `${weekdayShort(d.date)} ${dayMonth(d.date)} | free: ${free || "(none)"} | events: ${events || "(none)"}`,
+      `${d.date} (${weekdayShort(d.date)} ${dayMonth(d.date)}) | free: ${free || "(none)"} | events: ${events || "(none)"}`,
     );
   }
   return lines.join("\n");

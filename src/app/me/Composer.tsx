@@ -17,21 +17,14 @@ interface Draft {
   recipient: string;
   typeIds: Set<string>;
   customDescription: string;
-  note: string;
 }
 
-const emptyDraft = (): Draft => ({
-  recipient: "",
-  typeIds: new Set(),
-  customDescription: "",
-  note: "",
-});
+const emptyDraft = (): Draft => ({ recipient: "", typeIds: new Set(), customDescription: "" });
 
 const draftFromShare = (s: Share): Draft => ({
   recipient: s.recipient ?? "",
   typeIds: new Set(s.typeIds),
   customDescription: s.customDescription ?? "",
-  note: s.note ?? "",
 });
 
 /** Shared create/edit form. */
@@ -66,7 +59,6 @@ function ShareForm({
       recipient: draft.recipient.trim() || undefined,
       typeIds: [...draft.typeIds],
       customDescription: draft.customDescription.trim() || undefined,
-      note: draft.note.trim() || undefined,
     });
     setBusy(false);
     if (err) setError(err);
@@ -100,9 +92,8 @@ function ShareForm({
           ))}
         </div>
         <p className="mt-2 text-[12px] leading-relaxed text-stone-400 dark:text-stone-500">
-          The link shows times that fit any type you pick — coffee/walk/lunch are daytime,
-          dinner/drinks are evenings, weekend is Sat/Sun. Pick several to widen it. (Configure the
-          types in Settings.)
+          The assistant shows times that suit any type you pick, reasoning over your calendar. Pick
+          several to widen it, or describe it below.
         </p>
       </div>
 
@@ -112,13 +103,6 @@ function ShareForm({
         placeholder="…or describe it ('a long sunday lunch', 'evening drinks somewhere central')"
         rows={2}
         className={`${inputCls} resize-none`}
-      />
-
-      <input
-        value={draft.note}
-        onChange={(e) => setDraft({ ...draft, note: e.target.value })}
-        placeholder="A private note for the text version (optional)"
-        className={inputCls}
       />
 
       {error && <p className="text-[13px] text-red-500">{error}</p>}
@@ -149,11 +133,14 @@ function ShareForm({
 export function Composer({
   eventTypes,
   initialShares,
+  updatedAt,
 }: {
   eventTypes: TypeOption[];
   initialShares: Share[];
+  updatedAt: Record<string, number | null>;
 }) {
   const [shares, setShares] = useState<Share[]>(initialShares);
+  const [refreshingAll, setRefreshingAll] = useState(false);
 
   async function create(payload: Omit<Share, "id" | "createdAt">): Promise<string | null> {
     const res = await fetch("/api/shares", {
@@ -167,6 +154,16 @@ export function Composer({
     return null;
   }
 
+  async function refreshAll() {
+    setRefreshingAll(true);
+    try {
+      await fetch("/api/shares/refresh-all", { method: "POST" });
+      window.location.reload();
+    } finally {
+      setRefreshingAll(false);
+    }
+  }
+
   return (
     <div className="mt-8 flex flex-col gap-10">
       <section className="rounded-2xl border border-stone-200 bg-white p-5 dark:border-stone-800 dark:bg-stone-900">
@@ -175,14 +172,24 @@ export function Composer({
 
       {shares.length > 0 && (
         <section className="flex flex-col gap-3">
-          <h2 className="text-[13px] font-medium uppercase tracking-wide text-stone-400 dark:text-stone-500">
-            Links
-          </h2>
+          <div className="flex items-baseline justify-between">
+            <h2 className="text-[13px] font-medium uppercase tracking-wide text-stone-400 dark:text-stone-500">
+              Links
+            </h2>
+            <button
+              onClick={refreshAll}
+              disabled={refreshingAll}
+              className="text-[12px] text-stone-400 underline-offset-2 hover:underline disabled:opacity-50 dark:text-stone-500"
+            >
+              {refreshingAll ? "Updating…" : "Update all"}
+            </button>
+          </div>
           {shares.map((s) => (
             <ShareRow
               key={s.id}
               share={s}
               eventTypes={eventTypes}
+              initialUpdatedAt={updatedAt[s.id] ?? null}
               onChange={(updated) => setShares((all) => all.map((x) => (x.id === s.id ? updated : x)))}
               onDelete={() => setShares((all) => all.filter((x) => x.id !== s.id))}
             />
@@ -193,20 +200,34 @@ export function Composer({
   );
 }
 
+function timeAgo(ms: number | null): string {
+  if (!ms) return "not yet generated";
+  const mins = Math.round((Date.now() - ms) / 60000);
+  if (mins < 1) return "updated just now";
+  if (mins < 60) return `updated ${mins}m ago`;
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24) return `updated ${hrs}h ago`;
+  return `updated ${Math.round(hrs / 24)}d ago`;
+}
+
 function ShareRow({
   share,
   eventTypes,
+  initialUpdatedAt,
   onChange,
   onDelete,
 }: {
   share: Share;
   eventTypes: TypeOption[];
+  initialUpdatedAt: number | null;
   onChange: (s: Share) => void;
   onDelete: () => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [textValue, setTextValue] = useState("");
+  const [updatedAt, setUpdatedAt] = useState<number | null>(initialUpdatedAt);
+  const [refreshing, setRefreshing] = useState(false);
   const flash = (what: string) => {
     setCopied(what);
     setTimeout(() => setCopied(null), 1600);
@@ -255,6 +276,18 @@ function ShareRow({
     setEditing(false);
     return null;
   }
+  async function refresh() {
+    setRefreshing(true);
+    try {
+      const r = await fetch(`/api/shares/${share.id}/refresh`, { method: "POST" });
+      if (r.ok) {
+        setUpdatedAt((await r.json()).updatedAt ?? Date.now());
+        setWhy(null); // so "Why?" reloads with the fresh reasoning
+      }
+    } finally {
+      setRefreshing(false);
+    }
+  }
 
   const [why, setWhy] = useState<Explanation | null>(null);
   const [whyOpen, setWhyOpen] = useState(false);
@@ -301,12 +334,18 @@ function ShareRow({
               open
             </a>
           </div>
+          <p className="text-[12px] text-stone-400 dark:text-stone-500">
+            {refreshing ? "updating…" : timeAgo(updatedAt)}
+          </p>
           <div className="flex flex-wrap gap-2">
             <button onClick={copyLink} className={copied === "link" ? copiedBtn : btn}>
               {copied === "link" ? "✓ Link copied" : "Copy link"}
             </button>
             <button onClick={copyText} className={copied === "text" ? copiedBtn : btn}>
               {copied === "text" ? "✓ Text copied" : "Copy as text"}
+            </button>
+            <button onClick={refresh} disabled={refreshing} className={`${btn} disabled:opacity-50`}>
+              Update
             </button>
             <button onClick={() => setEditing(true)} className={btn}>
               Edit

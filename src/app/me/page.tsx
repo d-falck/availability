@@ -7,11 +7,18 @@
 import Link from "next/link";
 import { config } from "@/config";
 import { listShares } from "@/lib/shares";
+import { loadSchedule } from "@/lib/schedule";
+import { shareUpdatedAt } from "@/lib/refine";
 import { Composer } from "./Composer";
 
 export const dynamic = "force-dynamic";
 
 export default function MePage() {
+  const shares = listShares();
+  const schedule = loadSchedule();
+  const updatedAt: Record<string, number | null> = {};
+  if (schedule) for (const s of shares) updatedAt[s.id] = shareUpdatedAt(s, schedule);
+
   return (
     <main className="min-h-screen bg-stone-50 text-stone-900 dark:bg-stone-950 dark:text-stone-100">
       <div className="mx-auto max-w-lg px-6 py-14">
@@ -28,7 +35,8 @@ export default function MePage() {
         </div>
         <Composer
           eventTypes={config.eventTypes.map((t) => ({ id: t.id, label: t.label }))}
-          initialShares={listShares()}
+          initialShares={shares}
+          updatedAt={updatedAt}
         />
       </div>
     </main>

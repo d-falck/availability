@@ -46,6 +46,17 @@ export function getCached(key: string): CachedRefine | null {
   return hit ? { slots: hit.slots, reasoning: hit.reasoning } : null;
 }
 
+/** When this entry was last computed (ms epoch), or null if absent. */
+export function cachedAt(key: string): number | null {
+  return read()[key]?.at ?? null;
+}
+
+export function removeCached(key: string): void {
+  const cache = read();
+  delete cache[key];
+  writeFileSync(dataPath("refine-cache.json"), JSON.stringify(cache, null, 2));
+}
+
 export function putCached(key: string, value: CachedRefine): void {
   const cache = read();
   cache[key] = { ...value, at: Date.now() };

@@ -15,7 +15,7 @@ import type { Schedule } from "@/types/schedule";
 import { loadSettings } from "@/lib/settings";
 import { buildPreferences } from "@/lib/prefs";
 import { proposeSlots, type ProposedSlot } from "@/lib/llm/brain";
-import { getCached, putCached, refineKey } from "@/lib/refinecache";
+import { cachedAt, getCached, putCached, refineKey, removeCached } from "@/lib/refinecache";
 import { groupByDay } from "@/lib/dayview";
 import { clockToMin, localMinutes, toISO } from "@/lib/time";
 
@@ -46,7 +46,13 @@ function keyFor(share: Share, schedule: Schedule, preferences: string): string {
   });
 }
 
-/** Keep only slots that sit inside a free window for their day. */
+const MIN_SLOT_MINS = 20;
+
+/**
+ * Keep each proposal, clipped to the free window it overlaps most (so minor
+ * boundary overruns survive instead of being dropped). Anything that doesn't
+ * overlap a real free window on a known day is discarded.
+ */
 function validate(proposed: ProposedSlot[], schedule: Schedule): Slot[] {
   const byDate = new Map(schedule.days.map((d) => [d.date, d]));
   const out: Slot[] = [];
@@ -56,15 +62,19 @@ function validate(proposed: ProposedSlot[], schedule: Schedule): Slot[] {
     const s = clockToMin(p.start);
     const e = clockToMin(p.end);
     if (!(e > s)) continue;
-    const fits = day.freeWindows.some(
-      (w) => s >= localMinutes(w.startISO) - 1 && e <= localMinutes(w.endISO) + 1,
-    );
-    if (!fits) continue;
+
+    let best: { s: number; e: number } | null = null;
+    for (const w of day.freeWindows) {
+      const cs = Math.max(s, localMinutes(w.startISO));
+      const ce = Math.min(e, localMinutes(w.endISO));
+      if (ce - cs >= MIN_SLOT_MINS && (!best || ce - cs > best.e - best.s)) best = { s: cs, e: ce };
+    }
+    if (!best) continue;
     out.push({
-      id: `${p.date}-${s}`,
+      id: `${p.date}-${best.s}`,
       date: p.date,
-      startISO: toISO(p.date, s),
-      endISO: toISO(p.date, e),
+      startISO: toISO(p.date, best.s),
+      endISO: toISO(p.date, best.e),
       ifNeedBe: !!p.ifNeedBe,
     });
   }
@@ -90,6 +100,17 @@ export async function resolveShare(share: Share, schedule: Schedule): Promise<Sl
 
 /** Ensure a share's result is cached (no-op if already warm). */
 export async function warmShare(share: Share, schedule: Schedule): Promise<void> {
+  await resolveShare(share, schedule);
+}
+
+/** When a share's currently-shown result was computed (ms epoch), or null. */
+export function shareUpdatedAt(share: Share, schedule: Schedule): number | null {
+  return cachedAt(keyFor(share, schedule, buildPreferences(loadSettings())));
+}
+
+/** Force a fresh brain pass for a share (ignores the cache). */
+export async function refreshShare(share: Share, schedule: Schedule): Promise<void> {
+  removeCached(keyFor(share, schedule, buildPreferences(loadSettings())));
   await resolveShare(share, schedule);
 }
 
