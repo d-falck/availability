@@ -62,6 +62,34 @@ export async function exchangeCode(code: string): Promise<TokenResponse> {
   });
 }
 
+// ── Sign-in with Google (identity only — separate redirect from calendar) ──
+
+export function loginRedirectUri(): string {
+  return `${env("APP_URL").replace(/\/$/, "")}/api/auth/google/callback`;
+}
+
+export function loginUrl(state: string): string {
+  const params = new URLSearchParams({
+    client_id: env("GOOGLE_CLIENT_ID"),
+    redirect_uri: loginRedirectUri(),
+    response_type: "code",
+    scope: "openid email",
+    prompt: "select_account",
+    state,
+  });
+  return `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
+}
+
+export async function exchangeLoginCode(code: string): Promise<TokenResponse> {
+  return tokenRequest({
+    code,
+    client_id: env("GOOGLE_CLIENT_ID"),
+    client_secret: env("GOOGLE_CLIENT_SECRET"),
+    redirect_uri: loginRedirectUri(),
+    grant_type: "authorization_code",
+  });
+}
+
 export async function accessTokenFromRefresh(refreshToken: string): Promise<string> {
   const { access_token } = await tokenRequest({
     refresh_token: refreshToken,
