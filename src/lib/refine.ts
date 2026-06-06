@@ -17,7 +17,7 @@ import { buildPreferences } from "@/lib/prefs";
 import { proposeSlots, type ProposedSlot } from "@/lib/llm/brain";
 import { cachedAt, getCached, putCached, refineKey, removeCached } from "@/lib/refinecache";
 import { groupByDay } from "@/lib/dayview";
-import { clockToMin, localMinutes, toISO } from "@/lib/time";
+import { clockToMin, localMinutes, resolveEdge, toISO } from "@/lib/time";
 
 function meetupText(share: Share, eventTypes: EventType[]): string {
   const parts = share.typeIds.map((id) => {
@@ -42,9 +42,18 @@ function keyFor(share: Share, schedule: Schedule, preferences: string): string {
     typeIds: share.typeIds,
     customDescription: share.customDescription ?? "",
     followUp: share.followUp ?? "",
+    window: `${share.offerFrom ?? "0w"}..${share.offerTo ?? "3w"}`,
     preferences,
     scheduleFingerprint: scheduleFingerprint(schedule),
   });
+}
+
+/** Restrict the schedule to a share's offer window. */
+function windowSchedule(share: Share, schedule: Schedule): Schedule {
+  const today = schedule.horizon.fromISO;
+  const from = resolveEdge(share.offerFrom ?? "0w", today);
+  const to = resolveEdge(share.offerTo ?? "3w", today);
+  return { ...schedule, days: schedule.days.filter((d) => d.date >= from && d.date <= to) };
 }
 
 const MIN_SLOT_MINS = 20;
@@ -90,13 +99,14 @@ export async function resolveShare(share: Share, schedule: Schedule): Promise<Sl
   const cached = getCached(key);
   if (cached) return cached.slots;
 
-  const { slots: proposed, reasoning } = await proposeSlots(schedule, {
+  const ws = windowSchedule(share, schedule);
+  const { slots: proposed, reasoning } = await proposeSlots(ws, {
     meetup: meetupText(share, settings.eventTypes),
     customDescription: share.customDescription ?? "",
     followUp: share.followUp ?? "",
     preferences,
   });
-  const slots = validate(proposed, schedule);
+  const slots = validate(proposed, ws);
   putCached(key, { slots, reasoning });
   return slots;
 }
@@ -124,7 +134,10 @@ export async function explainShare(
 ): Promise<{ reasoning: string; days: ReturnType<typeof groupByDay> }> {
   await resolveShare(share, schedule); // warm if cold
   const cached = getCached(keyFor(share, schedule, buildPreferences(loadSettings())));
-  return { reasoning: cached?.reasoning ?? "", days: groupByDay(cached?.slots ?? []) };
+  return {
+    reasoning: cached?.reasoning ?? "",
+    days: groupByDay(cached?.slots ?? [], share.precision === "exact"),
+  };
 }
 
 /** Deeper diagnostics — re-runs the brain (bypassing cache) to show the raw call. */
@@ -132,13 +145,14 @@ export async function debugShare(share: Share, schedule: Schedule) {
   const settings = loadSettings();
   const preferences = buildPreferences(settings);
   const meetup = meetupText(share, settings.eventTypes);
-  const { slots: proposed, reasoning } = await proposeSlots(schedule, {
+  const ws = windowSchedule(share, schedule);
+  const { slots: proposed, reasoning } = await proposeSlots(ws, {
     meetup,
     customDescription: share.customDescription ?? "",
     followUp: share.followUp ?? "",
     preferences,
   });
-  const slots = validate(proposed, schedule);
+  const slots = validate(proposed, ws);
   return {
     share,
     meetup,

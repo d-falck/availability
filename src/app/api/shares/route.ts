@@ -23,6 +23,9 @@ export async function POST(req: Request) {
     recipient: body.recipient?.trim() || undefined,
     typeIds,
     customDescription: body.customDescription?.trim() || undefined,
+    offerFrom: body.offerFrom,
+    offerTo: body.offerTo,
+    precision: body.precision === "exact" ? "exact" : "rough",
   });
 
   // Warm the brain cache in the background so creating a link is instant; the

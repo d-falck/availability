@@ -11,8 +11,8 @@ import type { Slot } from "@/types/snapshot";
 import { groupByDay } from "@/lib/dayview";
 import { dayMonth, weekdayShort } from "@/lib/time";
 
-export function ViewerPage({ slots }: { slots: Slot[] }) {
-  const days = groupByDay(slots);
+export function ViewerPage({ slots, exact = false }: { slots: Slot[]; exact?: boolean }) {
+  const days = groupByDay(slots, exact);
 
   return (
     <main className="min-h-screen bg-white text-stone-900 dark:bg-stone-950 dark:text-stone-100">

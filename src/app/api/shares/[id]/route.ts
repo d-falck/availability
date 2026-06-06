@@ -11,6 +11,9 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     typeIds: Array.isArray(body.typeIds) ? body.typeIds : [],
     customDescription: body.customDescription?.trim() || undefined,
     followUp: body.followUp?.trim() || undefined,
+    offerFrom: body.offerFrom,
+    offerTo: body.offerTo,
+    precision: body.precision === "exact" ? "exact" : "rough",
   });
   if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
 

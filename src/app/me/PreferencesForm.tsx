@@ -4,17 +4,10 @@ import * as React from "react";
 import { useEffect, useState } from "react";
 import type { Settings } from "@/lib/settings";
 
-type Prefs = Pick<Settings, "availableFrom" | "availableTo" | "horizonDays" | "guidance">;
+type Prefs = Pick<Settings, "availableFrom" | "availableTo" | "guidance">;
 
 const inputCls =
   "rounded-lg border border-stone-200 p-2 text-[14px] outline-none focus:border-stone-400 dark:border-stone-700 dark:bg-stone-900 dark:focus:border-stone-500";
-const HORIZONS = [
-  [7, "1 week"],
-  [14, "2 weeks"],
-  [21, "3 weeks"],
-  [28, "4 weeks"],
-  [42, "6 weeks"],
-] as const;
 
 export function PreferencesForm() {
   const [s, setS] = useState<Prefs | null>(null);
@@ -23,7 +16,7 @@ export function PreferencesForm() {
   useEffect(() => {
     fetch("/api/settings")
       .then((r) => r.json())
-      .then((d) => setS({ availableFrom: d.availableFrom, availableTo: d.availableTo, horizonDays: d.horizonDays, guidance: d.guidance }));
+      .then((d) => setS({ availableFrom: d.availableFrom, availableTo: d.availableTo, guidance: d.guidance }));
   }, []);
 
   if (!s) return <p className="text-[13px] text-stone-400">Loading…</p>;
@@ -48,19 +41,6 @@ export function PreferencesForm() {
           <span>to</span>
           <input type="time" value={s.availableTo} onChange={(e) => setS({ ...s, availableTo: e.target.value })} className={inputCls} />
         </div>
-      </label>
-
-      <label className="flex flex-col gap-2">
-        <span className="text-[14px] text-stone-700 dark:text-stone-300">Offer options for the next</span>
-        <select
-          value={s.horizonDays}
-          onChange={(e) => setS({ ...s, horizonDays: Number(e.target.value) })}
-          className={`${inputCls} w-40`}
-        >
-          {HORIZONS.map(([days, label]) => (
-            <option key={days} value={days}>{label}</option>
-          ))}
-        </select>
       </label>
 
       <label className="flex flex-col gap-2">

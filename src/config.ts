@@ -17,12 +17,15 @@ export interface Config {
   timezone: "Europe/London";
   horizonDays: number;
   owner: { name: string; contactEmail: string };
+  /** Google accounts allowed to sign in (overridable via AUTH_ALLOWED_EMAILS). */
+  allowedEmails: string[];
 }
 
 export const config: Config = {
   timezone: "Europe/London",
   horizonDays: 21,
   owner: { name: "Damon", contactEmail: "damon.falck@gmail.com" },
+  allowedEmails: ["damon.falck@gmail.com", "damon@inherentlaboratories.com"],
 };
 
 export const DEFAULT_EVENT_TYPES: EventType[] = [

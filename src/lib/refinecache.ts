@@ -22,6 +22,7 @@ export function refineKey(parts: {
   typeIds: string[];
   customDescription: string;
   followUp: string;
+  window: string;
   preferences: string;
   scheduleFingerprint: string;
 }): string {
@@ -29,6 +30,7 @@ export function refineKey(parts: {
     t: [...parts.typeIds].sort(),
     d: parts.customDescription,
     f: parts.followUp,
+    w: parts.window,
     p: parts.preferences,
     s: parts.scheduleFingerprint,
   });

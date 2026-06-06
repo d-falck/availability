@@ -1,13 +1,14 @@
 /**
- * Human time descriptions for a free window. Goal: always unambiguous — either a
- * period word ("afternoon"), "all day", or an explicit bounded range
- * ("7:15–11pm", "11:30am–1pm"). Never an open-ended "from X" (which left readers
- * asking "until when?").
+ * Human time descriptions for a free window.
+ *
+ * "rough" (default) is natural and deliberately loose — a period word
+ * ("afternoon"), "all day", or a soft anchor with no end ("from 7:30pm",
+ * "around lunchtime") — leaving the exact end up to the people meeting.
+ * "exact" gives the precise bounded range ("7:30–10:30pm").
  */
 
 import { clockToMin } from "./time";
 
-// Fixed boundaries for *labelling* times of day (independent of availability hours).
 const PERIODS = [
   { name: "morning", start: clockToMin("09:00"), end: clockToMin("12:00") },
   { name: "afternoon", start: clockToMin("12:00"), end: clockToMin("18:00") },
@@ -33,12 +34,19 @@ function fmtRange(a: number, b: number): string {
 const overlap = (s: number, e: number, p: { start: number; end: number }) =>
   Math.max(0, Math.min(e, p.end) - Math.max(s, p.start));
 
-/**
- * Describe one continuous free window. A period word is only used when the
- * window substantially covers that period; partial windows get an explicit
- * range, so we never claim "morning and afternoon" for a 10am–1pm gap.
- */
-export function describeWindow(startMin: number, endMin: number): string {
+/** A loose phrase anchored on the start of a partial window — no end time. */
+function roughPhrase(startMin: number): string {
+  if (startMin < clockToMin("11:00")) return "morning";
+  if (startMin < clockToMin("14:00")) return "around lunchtime";
+  if (startMin < clockToMin("16:30")) return "afternoon";
+  if (startMin < clockToMin("18:15")) return "late afternoon";
+  // Evening: keep the useful start anchor, drop the end.
+  return startMin <= clockToMin("18:30") ? "evening" : `from ${fmtTime(startMin)}`;
+}
+
+export function describeWindow(startMin: number, endMin: number, exact = false): string {
+  if (exact) return fmtRange(startMin, endMin);
+
   const covered = PERIODS.map((p) => ({ p, frac: overlap(startMin, endMin, p) / (p.end - p.start) }))
     .filter((x) => x.frac >= 0.5);
   const names = covered.map((x) => x.p.name);
@@ -49,7 +57,7 @@ export function describeWindow(startMin: number, endMin: number): string {
     if (names[0] === "morning" && names[1] === "afternoon") return "daytime";
     return names.join(" and ");
   }
-  // Single period: use the word only if it nearly fills it; otherwise be exact.
+  // Fills a single period -> the period word; otherwise a loose start phrase.
   if (covered.length === 1 && covered[0].frac >= 0.85) return covered[0].p.name;
-  return fmtRange(startMin, endMin);
+  return roughPhrase(startMin);
 }

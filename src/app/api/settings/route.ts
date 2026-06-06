@@ -16,7 +16,6 @@ const slug = (s: string) =>
 export async function PUT(req: Request) {
   const body = (await req.json()) as Partial<Settings>;
   const next: Settings = { ...loadSettings(), ...body };
-  next.horizonDays = Math.max(7, Math.min(56, Number(next.horizonDays) || 21));
 
   if (Array.isArray(body.eventTypes)) {
     next.eventTypes = body.eventTypes

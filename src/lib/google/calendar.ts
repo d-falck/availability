@@ -7,7 +7,6 @@
 import { config } from "@/config";
 import type { CalendarFetch, RawEvent } from "@/types/calendar";
 import { addDays, todayInTz } from "@/lib/time";
-import { loadSettings } from "@/lib/settings";
 import { accessTokenFromRefresh } from "./oauth";
 import { listAccounts, type GoogleAccount } from "./store";
 
@@ -99,7 +98,8 @@ export async function fetchGoogleCalendar(): Promise<CalendarFetch | null> {
   const accounts = listAccounts().filter((a) => a.calendarIds.length);
   if (!accounts.length) return null;
 
-  const horizonDays = loadSettings().horizonDays;
+  // Always fetch the full max window (6 weeks); each link offers a sub-window.
+  const horizonDays = 42;
   const today = todayInTz(config.timezone);
   const timeMin = new Date(`${today}T00:00:00Z`).toISOString();
   const timeMax = new Date(addDays(today, horizonDays + 1) + "T00:00:00Z").toISOString();

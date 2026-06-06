@@ -24,7 +24,7 @@ export default async function ShareRoute({ params }: { params: { share: string }
 
   return (
     <>
-      <ViewerPage slots={slots} />
+      <ViewerPage slots={slots} exact={share.precision === "exact"} />
       <script dangerouslySetInnerHTML={{ __html: CONTROLLER_JS }} />
     </>
   );

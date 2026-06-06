@@ -10,6 +10,6 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   const schedule = loadSchedule();
   if (!share || !schedule) return new NextResponse("Not found", { status: 404 });
 
-  const text = toText(await resolveShare(share, schedule));
+  const text = toText(await resolveShare(share, schedule), { exact: share.precision === "exact" });
   return new NextResponse(text, { headers: { "content-type": "text/plain; charset=utf-8" } });
 }

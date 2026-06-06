@@ -29,7 +29,7 @@ function mergeIntervals(intervals: Interval[]): Interval[] {
   return out;
 }
 
-export function groupByDay(slots: Slot[]): DayView[] {
+export function groupByDay(slots: Slot[], exact = false): DayView[] {
   const byDate = new Map<string, Slot[]>();
   for (const s of slots) (byDate.get(s.date) ?? byDate.set(s.date, []).get(s.date)!).push(s);
 
@@ -40,7 +40,7 @@ export function groupByDay(slots: Slot[]): DayView[] {
     );
     days.push({
       date,
-      label: intervals.map(([s, e]) => describeWindow(s, e)).join(", "),
+      label: intervals.map(([s, e]) => describeWindow(s, e, exact)).join(", "),
       ifNeedBe: daySlots.every((s) => s.ifNeedBe),
       ids: daySlots.map((s) => s.id),
     });

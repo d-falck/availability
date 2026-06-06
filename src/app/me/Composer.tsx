@@ -12,20 +12,38 @@ type TypeOption = { id: string; label: string };
 const inputCls =
   "w-full rounded-xl border border-stone-200 p-3 text-[15px] outline-none placeholder:text-stone-300 focus:border-stone-400 dark:border-stone-700 dark:bg-stone-900 dark:placeholder:text-stone-600 dark:focus:border-stone-500";
 const pill = "rounded-full border px-3 py-1 text-[12px] transition";
+const selCls =
+  "rounded-lg border border-stone-200 bg-transparent px-2 py-1 text-[13px] text-stone-700 outline-none focus:border-stone-400 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300 dark:focus:border-stone-500";
+const todayISO = () => new Date().toISOString().slice(0, 10);
 
 interface Draft {
   recipient: string;
   typeIds: Set<string>;
   customDescription: string;
+  offerFrom: string;
+  offerTo: string;
+  precision: "rough" | "exact";
 }
 
-const emptyDraft = (): Draft => ({ recipient: "", typeIds: new Set(), customDescription: "" });
+const emptyDraft = (): Draft => ({
+  recipient: "",
+  typeIds: new Set(),
+  customDescription: "",
+  offerFrom: "0w",
+  offerTo: "3w",
+  precision: "rough",
+});
 
 const draftFromShare = (s: Share): Draft => ({
   recipient: s.recipient ?? "",
   typeIds: new Set(s.typeIds),
   customDescription: s.customDescription ?? "",
+  offerFrom: s.offerFrom ?? "0w",
+  offerTo: s.offerTo ?? "3w",
+  precision: s.precision ?? "rough",
 });
+
+const isDate = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v);
 
 /** Shared create/edit form. */
 function ShareForm({
@@ -59,6 +77,9 @@ function ShareForm({
       recipient: draft.recipient.trim() || undefined,
       typeIds: [...draft.typeIds],
       customDescription: draft.customDescription.trim() || undefined,
+      offerFrom: draft.offerFrom,
+      offerTo: draft.offerTo,
+      precision: draft.precision,
     });
     setBusy(false);
     if (err) setError(err);
@@ -94,10 +115,55 @@ function ShareForm({
       <textarea
         value={draft.customDescription}
         onChange={(e) => setDraft({ ...draft, customDescription: e.target.value })}
-        placeholder="…or describe it ('a long sunday lunch', 'evening drinks somewhere central')"
+        placeholder="…or describe it"
         rows={2}
         className={`${inputCls} resize-none`}
       />
+
+      <div className="flex flex-col gap-2.5 text-[13px] text-stone-500 dark:text-stone-400">
+        <div className="flex flex-wrap items-center gap-2">
+          <span>Offer slots from</span>
+          <select
+            value={isDate(draft.offerFrom) ? "date" : draft.offerFrom}
+            onChange={(e) =>
+              setDraft({ ...draft, offerFrom: e.target.value === "date" ? todayISO() : e.target.value })
+            }
+            className={selCls}
+          >
+            <option value="0w">now</option>
+            <option value="1w">in 1 week</option>
+            <option value="2w">in 2 weeks</option>
+            <option value="3w">in 3 weeks</option>
+            <option value="4w">in 4 weeks</option>
+            <option value="date">a date…</option>
+          </select>
+          {isDate(draft.offerFrom) && (
+            <input
+              type="date"
+              value={draft.offerFrom}
+              onChange={(e) => setDraft({ ...draft, offerFrom: e.target.value })}
+              className={selCls}
+            />
+          )}
+          <span>up to</span>
+          <select value={draft.offerTo} onChange={(e) => setDraft({ ...draft, offerTo: e.target.value })} className={selCls}>
+            {[1, 2, 3, 4, 5, 6].map((w) => (
+              <option key={w} value={`${w}w`}>{w} week{w > 1 ? "s" : ""}</option>
+            ))}
+          </select>
+        </div>
+        <div className="flex items-center gap-2">
+          <span>Show times</span>
+          <select
+            value={draft.precision}
+            onChange={(e) => setDraft({ ...draft, precision: e.target.value as Draft["precision"] })}
+            className={selCls}
+          >
+            <option value="rough">roughly</option>
+            <option value="exact">exactly</option>
+          </select>
+        </div>
+      </div>
 
       {error && <p className="text-[13px] text-red-500">{error}</p>}
 

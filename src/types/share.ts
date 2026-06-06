@@ -16,5 +16,12 @@ export interface Share {
   /** A follow-up steer added later (from the Why panel); folded into the brain
    *  context on every refresh, e.g. "lean earlier in the week" or "no Mondays". */
   followUp?: string;
+  /** Offer window. Each edge is "Nw" (N weeks from now) or an ISO date.
+   *  Default from "0w" (now) to "3w". */
+  offerFrom?: string;
+  offerTo?: string;
+  /** How precisely to show times to the recipient. Default "rough". */
+  precision?: "rough" | "exact";
   createdAt: string;
 }
+

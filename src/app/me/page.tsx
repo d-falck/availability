@@ -23,13 +23,13 @@ export default function MePage() {
   return (
     <main className="min-h-screen bg-stone-50 text-stone-900 dark:bg-stone-950 dark:text-stone-100">
       <div className="mx-auto max-w-lg px-6 py-14">
-        <div className="flex justify-end">
-          <Link
-            href="/me/settings"
-            className="text-[13px] text-stone-400 underline-offset-2 hover:underline dark:text-stone-500"
-          >
+        <div className="flex justify-end gap-4 text-[13px] text-stone-400 dark:text-stone-500">
+          <Link href="/me/settings" className="underline-offset-2 hover:underline">
             Settings
           </Link>
+          <a href="/api/logout" className="underline-offset-2 hover:underline">
+            Sign out
+          </a>
         </div>
         <Composer eventTypes={eventTypes} initialShares={shares} updatedAt={updatedAt} />
       </div>

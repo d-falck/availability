@@ -89,6 +89,12 @@ export const weekdayShort = (date: string): string =>
 export const todayInTz = (tz: string): string =>
   new Intl.DateTimeFormat("en-CA", { timeZone: tz }).format(new Date());
 
+/** Resolve an offer-window edge ("Nw" = N weeks from `today`, or an ISO date). */
+export const resolveEdge = (edge: string, today: string): string => {
+  const m = /^(\d+)w$/.exec(edge);
+  return m ? addDays(today, Number(m[1]) * 7) : edge;
+};
+
 /** "8 Jun" style short label. */
 export const dayMonth = (date: string): string => {
   const d = new Date(`${date}T00:00:00Z`);
