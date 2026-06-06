@@ -8,7 +8,7 @@
  * generation time and on share create/edit.
  */
 
-import { config, eventTypeById } from "@/config";
+import type { EventType } from "@/config";
 import type { Share } from "@/types/share";
 import type { Slot } from "@/types/snapshot";
 import type { Schedule } from "@/types/schedule";
@@ -19,9 +19,9 @@ import { cachedAt, getCached, putCached, refineKey, removeCached } from "@/lib/r
 import { groupByDay } from "@/lib/dayview";
 import { clockToMin, localMinutes, toISO } from "@/lib/time";
 
-function meetupText(share: Share): string {
+function meetupText(share: Share, eventTypes: EventType[]): string {
   const parts = share.typeIds.map((id) => {
-    const t = eventTypeById(id);
+    const t = eventTypes.find((x) => x.id === id);
     return t ? `${t.label} (${t.description})` : id;
   });
   return parts.join("; ") || "(see description)";
@@ -82,14 +82,15 @@ function validate(proposed: ProposedSlot[], schedule: Schedule): Slot[] {
 }
 
 export async function resolveShare(share: Share, schedule: Schedule): Promise<Slot[]> {
-  const preferences = buildPreferences(loadSettings());
+  const settings = loadSettings();
+  const preferences = buildPreferences(settings);
   const key = keyFor(share, schedule, preferences);
 
   const cached = getCached(key);
   if (cached) return cached.slots;
 
   const { slots: proposed, reasoning } = await proposeSlots(schedule, {
-    meetup: meetupText(share),
+    meetup: meetupText(share, settings.eventTypes),
     customDescription: share.customDescription ?? "",
     preferences,
   });
@@ -126,8 +127,9 @@ export async function explainShare(
 
 /** Deeper diagnostics — re-runs the brain (bypassing cache) to show the raw call. */
 export async function debugShare(share: Share, schedule: Schedule) {
-  const preferences = buildPreferences(loadSettings());
-  const meetup = meetupText(share);
+  const settings = loadSettings();
+  const preferences = buildPreferences(settings);
+  const meetup = meetupText(share, settings.eventTypes);
   const { slots: proposed, reasoning } = await proposeSlots(schedule, {
     meetup,
     customDescription: share.customDescription ?? "",

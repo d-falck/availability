@@ -1,12 +1,10 @@
 /**
- * Code defaults. Runtime-editable preferences live in settings.ts (Settings
- * screen) and override the reserve/window/guidance values here.
+ * Code constants. Everything the host actually tunes (availability hours,
+ * guidance, event types) lives in settings.ts and is edited from the Settings
+ * screen.
  */
 
 export type DayCode = "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN";
-
-/** "HH:MM" 24h local time. */
-export type ClockTime = string;
 
 /** A preset the host ticks when composing a share. `description` steers the LLM. */
 export interface EventType {
@@ -18,43 +16,26 @@ export interface EventType {
 export interface Config {
   timezone: "Europe/London";
   horizonDays: number;
-
-  /** Overall availability window each day; the brain picks times within it. */
-  dayWindow: { start: ClockTime; end: ClockTime };
-  eveningWindow: { start: ClockTime; end: ClockTime };
-
-  /** Soft reserve preference (rendered into the prompt, not hard-enforced). */
-  eveningReserve: {
-    minFreeEveningsPerWeek: number;
-    pinnedReservedNights: DayCode[];
-  };
-
-  eventTypes: EventType[];
-
   owner: { name: string; contactEmail: string };
 }
 
 export const config: Config = {
   timezone: "Europe/London",
   horizonDays: 21,
-
-  dayWindow: { start: "09:00", end: "18:00" },
-  eveningWindow: { start: "18:00", end: "23:00" },
-
-  eveningReserve: {
-    minFreeEveningsPerWeek: 2,
-    pinnedReservedNights: ["MON"],
-  },
-
-  eventTypes: [
-    { id: "coffee", label: "Coffee or walk", description: "a short daytime coffee, catch-up or walk, ~30–60 min" },
-    { id: "lunch", label: "Lunch", description: "lunch around midday, ~1 hr" },
-    { id: "dinner", label: "Dinner or drinks", description: "an evening dinner or drinks, ~2–3 hrs, ideally not on a heavy day" },
-    { id: "weekend", label: "Weekend meetup", description: "a longer, unhurried weekend meet-up" },
-  ],
-
   owner: { name: "Damon", contactEmail: "damon.falck@gmail.com" },
 };
 
-export const eventTypeById = (id: string): EventType | undefined =>
-  config.eventTypes.find((t) => t.id === id);
+export const DEFAULT_EVENT_TYPES: EventType[] = [
+  { id: "coffee", label: "Coffee or walk", description: "a short daytime coffee, catch-up or walk, ~30–60 min" },
+  { id: "lunch", label: "Lunch", description: "lunch around midday, ~1 hr" },
+  { id: "dinner", label: "Dinner or drinks", description: "an evening dinner or drinks, ~2–3 hrs, ideally not on a heavy day" },
+  { id: "weekend", label: "Weekend meetup", description: "a longer, unhurried weekend meet-up" },
+];
+
+/** Seed guidance — captures the old reserve/all-day defaults as editable prose. */
+export const DEFAULT_GUIDANCE = [
+  "Keep at least 2 evenings a week free for late work, ideally including Monday.",
+  "Prefer weekends for longer, unhurried meet-ups.",
+  "On heavy back-to-back days, keep that evening calm.",
+  "All-day entries are often loose holds before a time is fixed — reason about when they'll likely land rather than blocking the whole day.",
+].join(" ");

@@ -12,7 +12,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { execSync } from "node:child_process";
 import { readFileSync, writeFileSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
-import { config } from "@/config";
+import { config, DEFAULT_EVENT_TYPES } from "@/config";
 import { ViewerPage } from "@/components/viewer/ViewerPage";
 import { Composer } from "@/app/me/Composer";
 import { CONTROLLER_JS } from "@/components/viewer/controller";
@@ -56,7 +56,7 @@ const meBody = renderToStaticMarkup(
         `${config.owner.name} · availability`,
       ),
       React.createElement(Composer, {
-        eventTypes: config.eventTypes.map((t) => ({ id: t.id, label: t.label })),
+        eventTypes: DEFAULT_EVENT_TYPES.map((t) => ({ id: t.id, label: t.label })),
         initialShares: [
           { id: "demo1", recipient: "Sam", typeIds: ["coffee"], createdAt: "" },
           { id: "demo2", recipient: "Priya", typeIds: ["dinner"], createdAt: "" },

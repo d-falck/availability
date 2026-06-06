@@ -8,6 +8,7 @@
  */
 
 import type { Config } from "@/config";
+import type { Settings } from "@/lib/settings";
 import type { CalendarFetch, RawEvent } from "@/types/calendar";
 import type { DaySchedule, Schedule, ScheduleEvent } from "@/types/schedule";
 import { clockToMin, eachDate, localDate, localMinutes, toISO, weekdayLong } from "@/lib/time";
@@ -54,8 +55,13 @@ function toScheduleEvent(e: RawEvent): ScheduleEvent {
   };
 }
 
-export function buildSchedule(fetch: CalendarFetch, config: Config, now: string): Schedule {
-  const span: Interval = [clockToMin(config.dayWindow.start), clockToMin(config.eveningWindow.end)];
+export function buildSchedule(
+  fetch: CalendarFetch,
+  config: Config,
+  settings: Settings,
+  now: string,
+): Schedule {
+  const span: Interval = [clockToMin(settings.availableFrom), clockToMin(settings.availableTo)];
   const horizonEnd = localDate(fetch.toISO);
   const days: DaySchedule[] = [];
 

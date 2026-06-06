@@ -5,18 +5,13 @@
  * asking "until when?").
  */
 
-import { config } from "@/config";
 import { clockToMin } from "./time";
 
-const DAY_START = clockToMin(config.dayWindow.start);
-const NOON = 12 * 60;
-const EV_START = clockToMin(config.eveningWindow.start);
-const EV_END = clockToMin(config.eveningWindow.end);
-
+// Fixed boundaries for *labelling* times of day (independent of availability hours).
 const PERIODS = [
-  { name: "morning", start: DAY_START, end: NOON },
-  { name: "afternoon", start: NOON, end: EV_START },
-  { name: "evening", start: EV_START, end: EV_END },
+  { name: "morning", start: clockToMin("09:00"), end: clockToMin("12:00") },
+  { name: "afternoon", start: clockToMin("12:00"), end: clockToMin("18:00") },
+  { name: "evening", start: clockToMin("18:00"), end: clockToMin("23:00") },
 ];
 
 /** "9am", "1pm", "7:15pm" (minutes shown only when off the hour). */

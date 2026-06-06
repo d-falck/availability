@@ -8,6 +8,7 @@ import Link from "next/link";
 import { config } from "@/config";
 import { listShares } from "@/lib/shares";
 import { loadSchedule } from "@/lib/schedule";
+import { loadSettings } from "@/lib/settings";
 import { shareUpdatedAt } from "@/lib/refine";
 import { Composer } from "./Composer";
 
@@ -16,6 +17,7 @@ export const dynamic = "force-dynamic";
 export default function MePage() {
   const shares = listShares();
   const schedule = loadSchedule();
+  const eventTypes = loadSettings().eventTypes.map((t) => ({ id: t.id, label: t.label }));
   const updatedAt: Record<string, number | null> = {};
   if (schedule) for (const s of shares) updatedAt[s.id] = shareUpdatedAt(s, schedule);
 
@@ -33,11 +35,7 @@ export default function MePage() {
             Settings
           </Link>
         </div>
-        <Composer
-          eventTypes={config.eventTypes.map((t) => ({ id: t.id, label: t.label }))}
-          initialShares={shares}
-          updatedAt={updatedAt}
-        />
+        <Composer eventTypes={eventTypes} initialShares={shares} updatedAt={updatedAt} />
       </div>
     </main>
   );

@@ -5,7 +5,8 @@
  */
 
 import { addDays, localDate, todayInTz } from "@/lib/time";
-import { effectiveConfig } from "@/lib/settings";
+import { config } from "@/config";
+import { loadSettings } from "@/lib/settings";
 import { saveSchedule } from "@/lib/schedule";
 import { listShares } from "@/lib/shares";
 import { warmShare } from "@/lib/refine";
@@ -13,13 +14,13 @@ import { fetchCalendar } from "./fetch";
 import { buildSchedule } from "./geometry";
 
 export async function generate(now?: string) {
-  const config = effectiveConfig();
+  const settings = loadSettings();
   const fetch = await fetchCalendar();
   // Mock data is anchored to a fixed month; real data uses today.
   const ref =
     now ?? (fetch.source === "mock" ? addDays(localDate(fetch.fromISO), 1) : todayInTz(config.timezone));
 
-  const schedule = buildSchedule(fetch, config, ref);
+  const schedule = buildSchedule(fetch, config, settings, ref);
   saveSchedule(schedule);
 
   // Warm the brain cache for existing shares (needs a key; a cache hit when a

@@ -1,38 +1,38 @@
 /**
- * Editable base preferences, persisted under DATA_DIR. These override the code
- * defaults in config.ts and are edited from the Settings screen. The generation
- * pipeline reads them via effectiveConfig() so changes take effect on the next
- * refresh. `guidance` is free-text steering for the LLM refine step (used once
- * ANTHROPIC_API_KEY is set).
+ * Runtime-editable settings, persisted under DATA_DIR (Settings screen):
+ *  - availability hours (structured — bounds the deterministic free-window geometry),
+ *  - guidance (the editable "prompt" — soft preferences for the brain),
+ *  - event types (the presets the host ticks when composing a share).
  */
 
 import { readFileSync, writeFileSync } from "node:fs";
-import { config, type Config, type DayCode } from "@/config";
+import { DEFAULT_EVENT_TYPES, DEFAULT_GUIDANCE, type EventType } from "@/config";
 import { dataPath } from "./paths";
 
 export interface Settings {
-  minFreeEveningsPerWeek: number;
-  pinnedReservedNights: DayCode[];
-  dayWindow: { start: string; end: string };
-  eveningWindow: { start: string; end: string };
-  /** How all-day events affect availability: block the day, or ignore them. */
-  allDayHandling: "busy" | "ignore";
-  /** Natural-language preferences for the LLM refine step. */
+  /** Earliest/latest "HH:MM" the host would ever meet — bounds the free windows. */
+  availableFrom: string;
+  availableTo: string;
+  /** Plain-English soft preferences for the brain. */
   guidance: string;
+  eventTypes: EventType[];
 }
 
 export const defaultSettings: Settings = {
-  minFreeEveningsPerWeek: config.eveningReserve.minFreeEveningsPerWeek,
-  pinnedReservedNights: config.eveningReserve.pinnedReservedNights,
-  dayWindow: config.dayWindow,
-  eveningWindow: config.eveningWindow,
-  allDayHandling: "busy",
-  guidance: "",
+  availableFrom: "09:00",
+  availableTo: "23:00",
+  guidance: DEFAULT_GUIDANCE,
+  eventTypes: DEFAULT_EVENT_TYPES,
 };
 
 export function loadSettings(): Settings {
   try {
-    return { ...defaultSettings, ...(JSON.parse(readFileSync(dataPath("settings.json"), "utf8")) as Partial<Settings>) };
+    const saved = JSON.parse(readFileSync(dataPath("settings.json"), "utf8")) as Partial<Settings>;
+    return {
+      ...defaultSettings,
+      ...saved,
+      eventTypes: saved.eventTypes?.length ? saved.eventTypes : defaultSettings.eventTypes,
+    };
   } catch {
     return defaultSettings;
   }
@@ -40,18 +40,4 @@ export function loadSettings(): Settings {
 
 export function saveSettings(s: Settings): void {
   writeFileSync(dataPath("settings.json"), JSON.stringify(s, null, 2));
-}
-
-/** Merge saved settings over the code config for the generation pipeline. */
-export function effectiveConfig(): Config {
-  const s = loadSettings();
-  return {
-    ...config,
-    dayWindow: s.dayWindow,
-    eveningWindow: s.eveningWindow,
-    eveningReserve: {
-      minFreeEveningsPerWeek: s.minFreeEveningsPerWeek,
-      pinnedReservedNights: s.pinnedReservedNights,
-    },
-  };
 }
