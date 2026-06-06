@@ -22,8 +22,6 @@ export async function POST(req: Request) {
   const share = createShare({
     recipient: body.recipient?.trim() || undefined,
     typeIds,
-    typeNotes: body.typeNotes,
-    note: body.note?.trim() || undefined,
     customDescription: body.customDescription?.trim() || undefined,
   });
 

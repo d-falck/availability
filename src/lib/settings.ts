@@ -13,6 +13,8 @@ export interface Settings {
   /** Earliest/latest "HH:MM" the host would ever meet — bounds the free windows. */
   availableFrom: string;
   availableTo: string;
+  /** How many days out to offer options. */
+  horizonDays: number;
   /** Plain-English soft preferences for the brain. */
   guidance: string;
   eventTypes: EventType[];
@@ -21,6 +23,7 @@ export interface Settings {
 export const defaultSettings: Settings = {
   availableFrom: "09:00",
   availableTo: "23:00",
+  horizonDays: 21,
   guidance: DEFAULT_GUIDANCE,
   eventTypes: DEFAULT_EVENT_TYPES,
 };

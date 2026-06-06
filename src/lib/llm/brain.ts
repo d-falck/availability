@@ -23,6 +23,8 @@ export interface BrainContext {
   /** Labels + descriptions of the selected event types. */
   meetup: string;
   customDescription: string;
+  /** A follow-up steer from the host for this specific link (highest priority). */
+  followUp: string;
   preferences: string;
 }
 
@@ -126,6 +128,7 @@ export async function proposeSlots(
   const ask = [
     `The meet-up: ${context.meetup}`,
     context.customDescription ? `Extra description: "${context.customDescription}"` : "",
+    context.followUp ? `Follow-up steer from me (give this strong weight): "${context.followUp}"` : "",
     "",
     "Propose the slots via the tool.",
   ]

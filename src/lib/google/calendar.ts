@@ -7,6 +7,7 @@
 import { config } from "@/config";
 import type { CalendarFetch, RawEvent } from "@/types/calendar";
 import { addDays, todayInTz } from "@/lib/time";
+import { loadSettings } from "@/lib/settings";
 import { accessTokenFromRefresh } from "./oauth";
 import { listAccounts, type GoogleAccount } from "./store";
 
@@ -98,9 +99,10 @@ export async function fetchGoogleCalendar(): Promise<CalendarFetch | null> {
   const accounts = listAccounts().filter((a) => a.calendarIds.length);
   if (!accounts.length) return null;
 
+  const horizonDays = loadSettings().horizonDays;
   const today = todayInTz(config.timezone);
   const timeMin = new Date(`${today}T00:00:00Z`).toISOString();
-  const timeMax = new Date(addDays(today, config.horizonDays + 1) + "T00:00:00Z").toISOString();
+  const timeMax = new Date(addDays(today, horizonDays + 1) + "T00:00:00Z").toISOString();
 
   const events = (
     await Promise.all(accounts.map((a) => fetchAccountEvents(a, timeMin, timeMax)))
@@ -108,7 +110,7 @@ export async function fetchGoogleCalendar(): Promise<CalendarFetch | null> {
 
   return {
     fromISO: today,
-    toISO: addDays(today, config.horizonDays),
+    toISO: addDays(today, horizonDays),
     timezone: config.timezone,
     events,
     source: "google",

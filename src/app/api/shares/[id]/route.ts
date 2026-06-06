@@ -9,8 +9,8 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   const updated = updateShare(params.id, {
     recipient: body.recipient?.trim() || undefined,
     typeIds: Array.isArray(body.typeIds) ? body.typeIds : [],
-    note: body.note?.trim() || undefined,
     customDescription: body.customDescription?.trim() || undefined,
+    followUp: body.followUp?.trim() || undefined,
   });
   if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
 

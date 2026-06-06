@@ -21,12 +21,14 @@ const MAX_ENTRIES = 60;
 export function refineKey(parts: {
   typeIds: string[];
   customDescription: string;
+  followUp: string;
   preferences: string;
   scheduleFingerprint: string;
 }): string {
   const basis = JSON.stringify({
     t: [...parts.typeIds].sort(),
     d: parts.customDescription,
+    f: parts.followUp,
     p: parts.preferences,
     s: parts.scheduleFingerprint,
   });

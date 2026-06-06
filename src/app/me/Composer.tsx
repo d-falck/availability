@@ -74,27 +74,21 @@ function ShareForm({
         className="w-full border-b border-stone-200 bg-transparent pb-2 text-[16px] outline-none placeholder:text-stone-300 focus:border-stone-400 dark:border-stone-700 dark:placeholder:text-stone-600 dark:focus:border-stone-500"
       />
 
-      <div>
-        <div className="flex flex-wrap gap-2">
-          {eventTypes.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => toggle(t.id)}
-              className={`${pill} text-[13px] ${
-                draft.typeIds.has(t.id)
-                  ? "border-stone-900 bg-stone-900 text-white dark:border-stone-100 dark:bg-stone-100 dark:text-stone-900"
-                  : "border-stone-200 text-stone-600 hover:border-stone-300 dark:border-stone-700 dark:text-stone-300 dark:hover:border-stone-500"
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-        <p className="mt-2 text-[12px] leading-relaxed text-stone-400 dark:text-stone-500">
-          The assistant shows times that suit any type you pick, reasoning over your calendar. Pick
-          several to widen it, or describe it below.
-        </p>
+      <div className="flex flex-wrap gap-2">
+        {eventTypes.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => toggle(t.id)}
+            className={`${pill} text-[13px] ${
+              draft.typeIds.has(t.id)
+                ? "border-stone-900 bg-stone-900 text-white dark:border-stone-100 dark:bg-stone-100 dark:text-stone-900"
+                : "border-stone-200 text-stone-600 hover:border-stone-300 dark:border-stone-700 dark:text-stone-300 dark:hover:border-stone-500"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
 
       <textarea
@@ -117,11 +111,7 @@ function ShareForm({
           {busy ? "Saving…" : submitLabel}
         </button>
         {onCancel && (
-          <button
-            type="button"
-            onClick={onCancel}
-            className="text-[13px] text-stone-400 hover:text-stone-600 dark:text-stone-500"
-          >
+          <button type="button" onClick={onCancel} className="text-[13px] text-stone-400 hover:text-stone-600 dark:text-stone-500">
             Cancel
           </button>
         )}
@@ -165,7 +155,7 @@ export function Composer({
   }
 
   return (
-    <div className="mt-8 flex flex-col gap-10">
+    <div className="mt-6 flex flex-col gap-10">
       <section className="rounded-2xl border border-stone-200 bg-white p-5 dark:border-stone-800 dark:bg-stone-900">
         <ShareForm eventTypes={eventTypes} submitLabel="Create link" onSubmit={create} />
       </section>
@@ -173,9 +163,7 @@ export function Composer({
       {shares.length > 0 && (
         <section className="flex flex-col gap-3">
           <div className="flex items-baseline justify-between">
-            <h2 className="text-[13px] font-medium uppercase tracking-wide text-stone-400 dark:text-stone-500">
-              Links
-            </h2>
+            <h2 className="text-[13px] font-medium uppercase tracking-wide text-stone-400 dark:text-stone-500">Links</h2>
             <button
               onClick={refreshAll}
               disabled={refreshingAll}
@@ -200,8 +188,7 @@ export function Composer({
   );
 }
 
-function timeAgo(ms: number | null): string {
-  if (!ms) return "not yet generated";
+function timeAgo(ms: number): string {
   const mins = Math.round((Date.now() - ms) / 60000);
   if (mins < 1) return "updated just now";
   if (mins < 60) return `updated ${mins}m ago`;
@@ -228,14 +215,17 @@ function ShareRow({
   const [textValue, setTextValue] = useState("");
   const [updatedAt, setUpdatedAt] = useState<number | null>(initialUpdatedAt);
   const [refreshing, setRefreshing] = useState(false);
+  const [followUp, setFollowUp] = useState(share.followUp ?? "");
+  const [why, setWhy] = useState<Explanation | null>(null);
+  const [whyOpen, setWhyOpen] = useState(false);
+  const [whyLoading, setWhyLoading] = useState(false);
+
   const flash = (what: string) => {
     setCopied(what);
     setTimeout(() => setCopied(null), 1600);
   };
 
-  // Pre-fetch the text version so "Copy as text" can write to the clipboard
-  // synchronously on click (an async fetch first loses the user-activation
-  // the clipboard API requires, so the copy would silently fail).
+  // Pre-fetch the text so "Copy text" can write to the clipboard synchronously.
   React.useEffect(() => {
     let alive = true;
     fetch(`/api/shares/${share.id}/text`)
@@ -245,15 +235,31 @@ function ShareRow({
     return () => {
       alive = false;
     };
-  }, [share.id, share.typeIds, share.customDescription, share.note]);
+  }, [share.id, share.typeIds, share.customDescription, share.followUp]);
 
-  const labels = share.typeIds
-    .map((id) => eventTypes.find((t) => t.id === id)?.label ?? id)
-    .join(", ");
+  // While a freshly-created link is still generating, poll until it's ready.
+  React.useEffect(() => {
+    if (updatedAt || refreshing) return;
+    let alive = true;
+    const t = setInterval(async () => {
+      const r = await fetch(`/api/shares/${share.id}/status`).then((x) => x.json()).catch(() => null);
+      if (alive && r?.updatedAt) {
+        setUpdatedAt(r.updatedAt);
+        clearInterval(t);
+      }
+    }, 3000);
+    return () => {
+      alive = false;
+      clearInterval(t);
+    };
+  }, [share.id, updatedAt, refreshing]);
+
+  const labels = share.typeIds.map((id) => eventTypes.find((t) => t.id === id)?.label ?? id).join(", ");
   const summary = [share.recipient, labels || share.customDescription].filter(Boolean).join(" · ");
+  const status = refreshing ? "updating…" : updatedAt ? timeAgo(updatedAt) : "preparing…";
 
   async function copyLink() {
-    await navigator.clipboard.writeText(`${window.location.origin}/v/${share.id}`);
+    await navigator.clipboard.writeText(`${window.location.origin}/${share.id}`);
     flash("link");
   }
   async function copyText() {
@@ -276,100 +282,98 @@ function ShareRow({
     setEditing(false);
     return null;
   }
+  async function loadWhy() {
+    setWhyLoading(true);
+    try {
+      const r = await fetch(`/api/shares/${share.id}/explain`);
+      setWhy(r.ok ? await r.json() : { reasoning: "Couldn't load.", days: [] });
+    } finally {
+      setWhyLoading(false);
+    }
+  }
+  async function toggleWhy() {
+    if (whyOpen) return setWhyOpen(false);
+    setWhyOpen(true);
+    if (!why) await loadWhy();
+  }
   async function refresh() {
     setRefreshing(true);
     try {
       const r = await fetch(`/api/shares/${share.id}/refresh`, { method: "POST" });
-      if (r.ok) {
-        setUpdatedAt((await r.json()).updatedAt ?? Date.now());
-        setWhy(null); // so "Why?" reloads with the fresh reasoning
-      }
+      if (r.ok) setUpdatedAt((await r.json()).updatedAt ?? Date.now());
+      setWhy(null);
+      if (whyOpen) await loadWhy();
     } finally {
       setRefreshing(false);
     }
   }
-
-  const [why, setWhy] = useState<Explanation | null>(null);
-  const [whyOpen, setWhyOpen] = useState(false);
-  const [whyLoading, setWhyLoading] = useState(false);
-
-  async function toggleWhy() {
-    if (whyOpen) return setWhyOpen(false);
-    setWhyOpen(true);
-    if (!why) {
-      setWhyLoading(true);
-      try {
-        const r = await fetch(`/api/shares/${share.id}/explain`);
-        setWhy(r.ok ? await r.json() : { reasoning: "Couldn't load.", days: [] });
-      } finally {
-        setWhyLoading(false);
-      }
+  async function applyFollowUp() {
+    setWhyLoading(true);
+    try {
+      const put = await fetch(`/api/shares/${share.id}`, {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          recipient: share.recipient,
+          typeIds: share.typeIds,
+          customDescription: share.customDescription,
+          followUp,
+        }),
+      });
+      if (put.ok) onChange(await put.json());
+      const r = await fetch(`/api/shares/${share.id}/explain`);
+      if (r.ok) setWhy(await r.json());
+      setUpdatedAt(Date.now());
+    } finally {
+      setWhyLoading(false);
     }
   }
 
-  const btn = `${pill} border-stone-200 text-stone-600 hover:border-stone-300 dark:border-stone-700 dark:text-stone-300 dark:hover:border-stone-500`;
-  const copiedBtn = `${pill} border-emerald-500 text-emerald-600 dark:border-emerald-500 dark:text-emerald-400`;
+  const act = "text-stone-500 transition hover:text-stone-900 disabled:opacity-40 dark:text-stone-400 dark:hover:text-stone-100";
+  const copiedAct = "text-emerald-600 dark:text-emerald-400";
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900">
+    <div className="flex flex-col gap-2.5 rounded-2xl border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900">
       {editing ? (
-        <ShareForm
-          eventTypes={eventTypes}
-          initial={share}
-          submitLabel="Save changes"
-          onSubmit={save}
-          onCancel={() => setEditing(false)}
-        />
+        <ShareForm eventTypes={eventTypes} initial={share} submitLabel="Save changes" onSubmit={save} onCancel={() => setEditing(false)} />
       ) : (
         <>
           <div className="flex items-baseline justify-between gap-3">
-            <span className="truncate text-[15px] text-stone-700 dark:text-stone-300">
-              {summary || "Untitled"}
-            </span>
-            <a
-              href={`/v/${share.id}`}
-              target="_blank"
-              className="shrink-0 text-[12px] text-stone-400 underline-offset-2 hover:underline dark:text-stone-500"
-            >
-              open
-            </a>
+            <span className="truncate text-[15px] text-stone-700 dark:text-stone-300">{summary || "Untitled"}</span>
+            <span className="shrink-0 text-[12px] text-stone-400 dark:text-stone-500">{status}</span>
           </div>
-          <p className="text-[12px] text-stone-400 dark:text-stone-500">
-            {refreshing ? "updating…" : timeAgo(updatedAt)}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <button onClick={copyLink} className={copied === "link" ? copiedBtn : btn}>
-              {copied === "link" ? "✓ Link copied" : "Copy link"}
+          <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-[12px]">
+            <a href={`/${share.id}`} target="_blank" className={act}>
+              Open ↗
+            </a>
+            <button onClick={copyLink} className={copied === "link" ? copiedAct : act}>
+              {copied === "link" ? "✓ Copied" : "Copy link"}
             </button>
-            <button onClick={copyText} className={copied === "text" ? copiedBtn : btn}>
-              {copied === "text" ? "✓ Text copied" : "Copy as text"}
+            <button onClick={copyText} className={copied === "text" ? copiedAct : act}>
+              {copied === "text" ? "✓ Copied" : "Copy text"}
             </button>
-            <button onClick={refresh} disabled={refreshing} className={`${btn} disabled:opacity-50`}>
+            <button onClick={refresh} disabled={refreshing} className={act}>
               Update
             </button>
-            <button onClick={() => setEditing(true)} className={btn}>
+            <button onClick={() => setEditing(true)} className={act}>
               Edit
             </button>
-            <button onClick={toggleWhy} className={btn}>
-              {whyOpen ? "Hide why" : "Why?"}
+            <button onClick={toggleWhy} className={act}>
+              {whyOpen ? "Hide" : "Why?"}
             </button>
-            <button
-              onClick={remove}
-              className={`${pill} border-transparent text-stone-400 hover:text-red-500 dark:text-stone-500`}
-            >
+            <button onClick={remove} className={`${act} hover:text-red-500`}>
               Delete
             </button>
           </div>
 
           {whyOpen && (
-            <div className="mt-1 rounded-xl border border-stone-100 bg-stone-50 p-3 text-[13px] dark:border-stone-800 dark:bg-stone-950/40">
-              {whyLoading && <p className="text-stone-400">Asking the assistant…</p>}
-              {why && !whyLoading && (
+            <div className="mt-1 flex flex-col gap-3 rounded-xl border border-stone-100 bg-stone-50 p-3 text-[13px] dark:border-stone-800 dark:bg-stone-950/40">
+              {whyLoading ? (
+                <p className="text-stone-400">Asking the assistant…</p>
+              ) : why ? (
                 <>
-                  {why.reasoning && (
-                    <p className="leading-relaxed text-stone-600 dark:text-stone-300">{why.reasoning}</p>
-                  )}
-                  <ul className="mt-2 flex flex-col gap-0.5 text-stone-500 dark:text-stone-400">
+                  {why.reasoning && <p className="leading-relaxed text-stone-600 dark:text-stone-300">{why.reasoning}</p>}
+                  <ul className="flex flex-col gap-0.5 text-stone-500 dark:text-stone-400">
                     {why.days.map((d) => (
                       <li key={d.date}>
                         {weekdayShort(d.date)} {dayMonth(d.date)} — {d.label}
@@ -379,7 +383,23 @@ function ShareRow({
                     {why.days.length === 0 && <li className="italic">No times chosen.</li>}
                   </ul>
                 </>
-              )}
+              ) : null}
+              <div className="flex items-end gap-2 border-t border-stone-100 pt-3 dark:border-stone-800">
+                <textarea
+                  value={followUp}
+                  onChange={(e) => setFollowUp(e.target.value)}
+                  placeholder="Add a follow-up to steer this — e.g. 'lean earlier in the week', 'no Mondays'"
+                  rows={2}
+                  className="flex-1 resize-none rounded-lg border border-stone-200 p-2 text-[13px] outline-none focus:border-stone-400 dark:border-stone-700 dark:bg-stone-900 dark:focus:border-stone-500"
+                />
+                <button
+                  onClick={applyFollowUp}
+                  disabled={whyLoading}
+                  className="shrink-0 rounded-full bg-stone-900 px-3 py-1.5 text-[12px] font-medium text-white transition hover:bg-stone-700 disabled:opacity-50 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-300"
+                >
+                  Apply
+                </button>
+              </div>
             </div>
           )}
         </>

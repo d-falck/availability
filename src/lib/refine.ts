@@ -41,6 +41,7 @@ function keyFor(share: Share, schedule: Schedule, preferences: string): string {
   return refineKey({
     typeIds: share.typeIds,
     customDescription: share.customDescription ?? "",
+    followUp: share.followUp ?? "",
     preferences,
     scheduleFingerprint: scheduleFingerprint(schedule),
   });
@@ -92,6 +93,7 @@ export async function resolveShare(share: Share, schedule: Schedule): Promise<Sl
   const { slots: proposed, reasoning } = await proposeSlots(schedule, {
     meetup: meetupText(share, settings.eventTypes),
     customDescription: share.customDescription ?? "",
+    followUp: share.followUp ?? "",
     preferences,
   });
   const slots = validate(proposed, schedule);
@@ -133,6 +135,7 @@ export async function debugShare(share: Share, schedule: Schedule) {
   const { slots: proposed, reasoning } = await proposeSlots(schedule, {
     meetup,
     customDescription: share.customDescription ?? "",
+    followUp: share.followUp ?? "",
     preferences,
   });
   const slots = validate(proposed, schedule);

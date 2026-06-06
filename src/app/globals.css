@@ -16,28 +16,40 @@ body {
   font-family: var(--font-serif);
 }
 
-/* Selectable day row — visual states driven by the tiny viewer controller. */
+/* Selectable day row — a circular checkbox appears on hover, fills when picked. */
 .slot {
   cursor: pointer;
-  transition: background-color 0.12s ease;
 }
-.slot:hover {
-  background-color: #fafaf9;
-}
-@media (prefers-color-scheme: dark) {
-  .slot:hover {
-    background-color: #1c1917; /* stone-900 */
-  }
-}
-.slot .check {
+.slot .box {
   opacity: 0;
-  transition: opacity 0.14s ease;
+  transition:
+    opacity 0.12s ease,
+    background-color 0.12s ease,
+    border-color 0.12s ease;
 }
-.slot.is-selected .check {
+.slot:hover .box {
   opacity: 1;
 }
-.slot.is-selected span:nth-child(2) {
+.slot .box .tick {
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.slot.is-selected .box {
+  opacity: 1;
+  background-color: #1c1917; /* stone-900 */
+  border-color: #1c1917;
+}
+.slot.is-selected .box .tick {
+  opacity: 1;
+}
+.slot.is-selected .slot-time {
   font-weight: 600;
+}
+@media (prefers-color-scheme: dark) {
+  .slot.is-selected .box {
+    background-color: #fafaf9; /* stone-50 */
+    border-color: #fafaf9;
+  }
 }
 
 /* Selection bar slides up when something is picked. */

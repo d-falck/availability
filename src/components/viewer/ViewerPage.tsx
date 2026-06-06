@@ -29,21 +29,21 @@ export function ViewerPage({ slots }: { slots: Slot[] }) {
                 type="button"
                 data-slot-id={d.date}
                 data-label={`${weekdayShort(d.date)} ${dayMonth(d.date)} — ${d.label}`}
-                className="slot flex w-full items-baseline justify-between gap-4 border-b border-stone-100 py-3.5 text-left dark:border-stone-800"
+                className="slot group flex w-full items-center gap-4 border-b border-stone-100 py-3.5 pr-1 text-left dark:border-stone-800"
               >
                 <span className="w-24 shrink-0 text-[16px] text-stone-400 dark:text-stone-500">
                   {weekdayShort(d.date)} {dayMonth(d.date)}
                 </span>
-                <span className="flex-1 text-[16px] text-stone-800 dark:text-stone-200">
+                <span className="slot-time flex-1 text-[16px] text-stone-800 dark:text-stone-200">
                   {d.label}
                 </span>
                 {d.ifNeedBe && (
-                  <span className="shrink-0 text-[13px] italic text-stone-300 dark:text-stone-600">
+                  <span className="shrink-0 text-[13px] italic text-stone-400 dark:text-stone-500">
                     if need be
                   </span>
                 )}
-                <span className="check shrink-0 text-[14px] text-stone-900 dark:text-stone-100">
-                  ✓
+                <span className="box flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border border-stone-300 text-[10px] leading-none text-white dark:border-stone-600 dark:text-stone-900">
+                  <span className="tick">✓</span>
                 </span>
               </button>
             </li>

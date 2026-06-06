@@ -4,20 +4,29 @@ import * as React from "react";
 import { useEffect, useState } from "react";
 import type { Settings } from "@/lib/settings";
 
+type Prefs = Pick<Settings, "availableFrom" | "availableTo" | "horizonDays" | "guidance">;
+
 const inputCls =
   "rounded-lg border border-stone-200 p-2 text-[14px] outline-none focus:border-stone-400 dark:border-stone-700 dark:bg-stone-900 dark:focus:border-stone-500";
+const HORIZONS = [
+  [7, "1 week"],
+  [14, "2 weeks"],
+  [21, "3 weeks"],
+  [28, "4 weeks"],
+  [42, "6 weeks"],
+] as const;
 
 export function PreferencesForm() {
-  const [s, setS] = useState<Pick<Settings, "availableFrom" | "availableTo" | "guidance"> | null>(null);
+  const [s, setS] = useState<Prefs | null>(null);
   const [status, setStatus] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/settings")
       .then((r) => r.json())
-      .then((d) => setS({ availableFrom: d.availableFrom, availableTo: d.availableTo, guidance: d.guidance }));
+      .then((d) => setS({ availableFrom: d.availableFrom, availableTo: d.availableTo, horizonDays: d.horizonDays, guidance: d.guidance }));
   }, []);
 
-  if (!s) return <p className="text-[13px] text-stone-400">Loading preferences…</p>;
+  if (!s) return <p className="text-[13px] text-stone-400">Loading…</p>;
 
   async function save() {
     setStatus("Saving…");
@@ -32,30 +41,37 @@ export function PreferencesForm() {
 
   return (
     <section className="flex flex-col gap-5 rounded-2xl border border-stone-200 bg-white p-5 dark:border-stone-800 dark:bg-stone-900">
-      <div className="flex flex-col gap-2">
-        <div className="text-[14px] text-stone-700 dark:text-stone-300">Available hours</div>
-        <div className="text-[12px] text-stone-400 dark:text-stone-500">
-          The earliest and latest the assistant will ever propose a meet-up.
-        </div>
+      <label className="flex flex-col gap-2">
+        <span className="text-[14px] text-stone-700 dark:text-stone-300">Available hours</span>
         <div className="flex items-center gap-2 text-[14px] text-stone-500">
           <input type="time" value={s.availableFrom} onChange={(e) => setS({ ...s, availableFrom: e.target.value })} className={inputCls} />
           <span>to</span>
           <input type="time" value={s.availableTo} onChange={(e) => setS({ ...s, availableTo: e.target.value })} className={inputCls} />
         </div>
-      </div>
+      </label>
 
-      <div className="flex flex-col gap-2">
-        <div className="text-[14px] text-stone-700 dark:text-stone-300">Guidance for the assistant</div>
-        <div className="text-[12px] text-stone-400 dark:text-stone-500">
-          Plain-English preferences — reserved evenings, weekends, energy, how to read all-day holds, anything.
-        </div>
+      <label className="flex flex-col gap-2">
+        <span className="text-[14px] text-stone-700 dark:text-stone-300">Offer options for the next</span>
+        <select
+          value={s.horizonDays}
+          onChange={(e) => setS({ ...s, horizonDays: Number(e.target.value) })}
+          className={`${inputCls} w-40`}
+        >
+          {HORIZONS.map(([days, label]) => (
+            <option key={days} value={days}>{label}</option>
+          ))}
+        </select>
+      </label>
+
+      <label className="flex flex-col gap-2">
+        <span className="text-[14px] text-stone-700 dark:text-stone-300">Guidance for the assistant</span>
         <textarea
           value={s.guidance}
           onChange={(e) => setS({ ...s, guidance: e.target.value })}
           rows={7}
           className={`${inputCls} w-full resize-none leading-relaxed`}
         />
-      </div>
+      </label>
 
       <div className="flex items-center gap-3">
         <button

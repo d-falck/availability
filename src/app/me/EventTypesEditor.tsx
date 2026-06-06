@@ -39,11 +39,6 @@ export function EventTypesEditor() {
 
   return (
     <section className="flex flex-col gap-3 rounded-2xl border border-stone-200 bg-white p-5 dark:border-stone-800 dark:bg-stone-900">
-      <p className="text-[12px] leading-relaxed text-stone-400 dark:text-stone-500">
-        The presets you tick when composing a link. The description is the little prompt the
-        assistant uses to pick fitting times.
-      </p>
-
       {types.map((t, i) => (
         <div key={i} className="flex flex-col gap-2 rounded-xl border border-stone-100 p-3 dark:border-stone-800">
           <div className="flex items-center gap-2">

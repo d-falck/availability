@@ -1,7 +1,9 @@
 /**
- * The recipient route: /v/[share]. Resolves the share against the latest
- * schedule (cache-first; brain on a cold cache) and renders the minimal view.
- * Only sanitized slots reach the browser — never the schedule's event details.
+ * The recipient route: /[share] (e.g. cal.damonfalck.me/abc123). Resolves the
+ * share against the latest schedule (cache-first; brain on a cold cache) and
+ * renders the minimal view. Only sanitized slots reach the browser — never the
+ * schedule's event details. Top-level static routes (/me, /login, /api) take
+ * precedence over this dynamic segment.
  */
 
 import { notFound } from "next/navigation";
