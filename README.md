@@ -1,5 +1,20 @@
 # availability
 
+> [!NOTE]
+> **Archived / paused as of 2 September 2026.** Damon is using Cal.com instead.
+> This repository is retained as a working reference and is not under active
+> development or maintenance. The code and deployment configuration remain
+> intact so the project can be resumed later if needed.
+
+## Project status
+
+- Development is paused; Cal.com is the current scheduling solution.
+- Do not deploy or modify the live app as part of routine maintenance.
+- The last active implementation is preserved on `main`.
+- To resume: install dependencies with `npm install`, review credentials and
+  provider APIs, run `npm run typecheck` and `npm run build`, then deploy
+  manually with the existing Fly configuration.
+
 A minimal, beautiful, single-user calendar-sharing tool. You compose a
 per-recipient availability page from a few event types (or a custom
 description), send the link (or paste the times), and it **stays up to date**

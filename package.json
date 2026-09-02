@@ -1,6 +1,7 @@
 {
   "name": "availability",
   "version": "0.1.0",
+  "description": "Archived single-user calendar availability sharing tool; superseded by Cal.com",
   "private": true,
   "scripts": {
     "dev": "next dev",
